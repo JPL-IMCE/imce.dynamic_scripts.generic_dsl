@@ -65,11 +65,47 @@
 	</target>
 
 	<target name="install">
-		<md.install.zip
-			scripts.dir="${scripts.dir}" 
-			scripts.archive="${scripts.archive}"
-			scripts.version="${THIS_JOB.version.human}"
-			install.dir="${md.install.dir}"/>
+		<mkdir dir="${md.install.dir}/lib/dynamicScripts"/>
+		<copy todir="${md.install.dir}/lib/dynamicScripts" verbose="true">
+			<fileset dir="${scripts.dir}/lib">
+				<include name="*.jar"/>
+			</fileset>
+		</copy>
+			
+		<replace file="${md.install.dir}/bin/magicdraw.properties">
+  			<replacetoken>lib/patch.jar</replacetoken>
+  			<replacevalue>lib/dynamicScripts/gov.nasa.jpl.dynamicScripts.jar\:lib/patch.jar</replacevalue>
+		</replace>
+		
+		<replace file="${md.install.dir}/bin/magicdraw-Java6.properties">
+  			<replacetoken>lib/patch.jar</replacetoken>
+  			<replacevalue>lib/dynamicScripts/gov.nasa.jpl.dynamicScripts.jar\:lib/patch.jar</replacevalue>
+		</replace>
+		
+		<replace file="${md.install.dir}/bin/magicdraw-Java7.properties">
+  			<replacetoken>lib/patch.jar</replacetoken>
+  			<replacevalue>lib/dynamicScripts/gov.nasa.jpl.dynamicScripts.jar\:lib/patch.jar</replacevalue>
+		</replace>
+			
+		<replace file="${md.install.dir}/bin/magicdraw.debug.properties">
+  			<replacetoken>lib/patch.jar</replacetoken>
+  			<replacevalue>lib/dynamicScripts/gov.nasa.jpl.dynamicScripts.jar\:lib/patch.jar</replacevalue>
+		</replace>
+			
+		<replace file="${md.install.dir}/bin/magicdraw.huge.properties">
+  			<replacetoken>lib/patch.jar</replacetoken>
+  			<replacevalue>lib/dynamicScripts/gov.nasa.jpl.dynamicScripts.jar\:lib/patch.jar</replacevalue>
+		</replace>
+  				
+		<replace file="${md.install.dir}/bin/magicdraw.large.properties">
+  			<replacetoken>lib/patch.jar</replacetoken>
+  			<replacevalue>lib/dynamicScripts/gov.nasa.jpl.dynamicScripts.jar\:lib/patch.jar</replacevalue>
+		</replace>
+  				
+		<replace file="${md.install.dir}/bin/magicdraw.small.properties">
+  			<replacetoken>lib/patch.jar</replacetoken>
+  			<replacevalue>lib/dynamicScripts/gov.nasa.jpl.dynamicScripts.jar\:lib/patch.jar</replacevalue>
+		</replace>
 	</target>
 		
 	<target name="bundle">
