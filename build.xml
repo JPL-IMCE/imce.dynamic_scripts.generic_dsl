@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<project xmlns:qvto="http://www.eclipse.org/qvt/1.0.0/Operational" name="DynamicScriptsDSL" basedir=".">
+
+	<property name="memorySize" 		value="-Xmx3076M"/>
+	<property name="maxPermGenSize"	value="-XX:MaxPermSize=1024M" />
+	
+	<property name="scripts.dir" 		location="."/>
+	<property name="project.dir" 		location="."/>
+	<property name="scripts.name" 		value="gov.nasa.jpl.dynamicScriptsDSL"/>
+	<property name="scripts.archive"		value="JPLDynamicScriptsDSL"/>
+
+	<import file="${md.install.dir}/data/eclipse/zip.xml"/>	
+	
+	<echoproperties prefix="md"/>
+	<echoproperties/>
+	
+	<property name="md.build.tools.dir"	location="${md.install.dir}/data/eclipse/resource/SMDP-PackageB" />
+	<!--
+	<import file="${md.build.tools.dir}/build.md.imce.scala.scripts.xml"/>
+	-->
+	<import file="./build.md.imce.scala.scripts.xml"/>
+	
+	<target name="all" depends="all.error,all.ok"/>
+	
+	<target name="all.error" unless="all.precondition.scala">
+		<echo message="Check the environment variables tested in the target 'all.precondition.scala'"/>
+		<fail/>
+	</target>
+		
+	<target name="all.ok" if="all.precondition.scala" depends="build,zip,install,bundle">
+		<save.script.properties/>
+	</target>
+	
+	<fileset id="scripts.profiles" dir="${scripts.dir}/profiles">
+		<include name="**/*.mdzip"/>
+	</fileset>
+
+	<fileset id="scripts.modelLibraries" dir="${scripts.dir}/modelLibraries">
+		<include name="**/*.mdzip"/>
+	</fileset>
+
+	<fileset id="scripts.tests" dir="${scripts.dir}/testResources">
+		<include name="**/*.mdzip"/>
+		<include name="**/*.properties"/>
+	</fileset>
+
+	<fileset id="scripts.samples" dir="${scripts.dir}/samples">
+		<include name="**/*.mdzip"/>
+	</fileset>
+	
+	<target name="zip">
+		<md.scripts.zip
+			scripts.dir="${scripts.dir}" 
+			scripts.name="${scripts.name}"
+			scripts.resource="${scripts.resource}"
+			scripts.archive="${scripts.archive}"
+			scripts.version="${THIS_JOB.version.human}">
+			<source-includes>
+				<include name="src/**/*.scala"/>
+			</source-includes>
+			<binary-includes>
+				<include name="bin/**/*.class"/>
+			</binary-includes>
+		</md.scripts.zip>
+	</target>
+
+	<target name="install">
+		<md.install.zip
+			scripts.dir="${scripts.dir}" 
+			scripts.archive="${scripts.archive}"
+			scripts.version="${THIS_JOB.version.human}"
+			install.dir="${md.install.dir}"/>
+	</target>
+		
+	<target name="bundle">
+		<md.zip.all
+			bundle.dest.dir="${scripts.dir}/artifacts"
+			bundle.name="${bundle.name}"
+			bundle.source.dir="${md.install.dir}"/>
+	</target>
+			
+	<path id="plugin.classpath">
+		<fileset dir="${md.install.dir}/plugins/com.nomagic.magicdraw.automaton">
+			<include name="*.jar"/>
+			<include name="lib/*.jar"/>
+		</fileset>
+		<fileset dir="${md.install.dir}/plugins/com.nomagic.magicdraw.qvt">
+			<include name="**/*.jar"/>
+		</fileset>
+		<fileset dir="${md.install.dir}/plugins/com.nomagic.magicdraw.dependencymatrix">
+			<include name="**/*.jar"/>
+		</fileset>
+		<fileset dir="${md.install.dir}/plugins/com.nomagic.magicdraw.diagramtable">
+			<include name="**/*.jar"/>
+		</fileset>
+		<fileset dir="${md.install.dir}/plugins/com.nomagic.magicdraw.ganttchartdiagram">
+			<include name="**/*.jar"/>
+		</fileset>
+		<fileset dir="${md.install.dir}/plugins/com.nomagic.magicdraw.migration">
+			<include name="**/*.jar"/>
+		</fileset>
+		<fileset dir="${md.install.dir}/plugins/com.nomagic.magicdraw.usagesdependencies">
+			<include name="**/*.jar"/>
+		</fileset>
+		<fileset dir="${md.install.dir}/plugins/com.nomagic.magicdraw.relationshipmap">
+			<include name="**/*.jar"/>
+		</fileset>
+		<fileset dir="${md.install.dir}/plugins/com.nomagic.magicdraw.sysml">
+			<include name="**/*.jar"/>
+		</fileset>
+		<fileset dir="${md.install.dir}/plugins/gov.nasa.jpl.magicdraw.qvto.library">
+			<include name="**/*.jar"/>
+		</fileset>
+		<fileset dir="${md.install.dir}/plugins/gov.nasa.jpl.magicdraw.log">
+			<include name="**/*.jar"/>
+		</fileset>
+		<fileset dir="${md.install.dir}/plugins/gov.nasa.jpl.magicdraw.projectUsageIntegrity">
+			<include name="**/*.jar"/>
+		</fileset>
+		<fileset dir="${md.install.dir}/plugins/gov.nasa.jpl.magicdraw.imce">
+			<include name="**/*.jar"/>
+		</fileset>
+		<fileset dir="${md.install.dir}/plugins/gov.nasa.jpl.magicdraw.ontorefactoring">
+			<include name="**/*.jar"/>
+		</fileset>
+		<fileset dir="${md.install.dir}/plugins/gov.nasa.jpl.magicdraw.scala">
+			<include name="**/*.jar"/>
+		</fileset>
+	</path>
+	
+</project>
