@@ -140,8 +140,10 @@
 		<mkdir dir="${scripts.dir}/bin"/>
 	    <scalac srcdir="${scripts.dir}/src" destdir="${scripts.dir}/bin"
             fork="true" target="jvm-1.6"
+	    		logging="verbose"
             deprecation="no" addparams="-no-specialization"
             jvmargs="-XX:+UseConcMarkSweepGC">
+	    		<sourcepath location="${scripts.dir}/tests"/>
 	   	 	<classpath>
 				<pathelement path="${java.class.path}" />
 				<path refid="classpath.libs.ref"/>
@@ -151,11 +153,14 @@
       		<include name="**/*.scala"/>
     		</scalac>
 		
-		<jar destfile="${scripts.dir}/lib/${scripts.name}.jar" basedir="${scripts.dir}/bin/">
+		<jar destfile="${scripts.dir}/lib/${scripts.name}.jar">
 				<fileset dir="${scripts.dir}/bin/">
 					<include name="**/*.class" />
 					<include name="**/*.properties" />
 				</fileset>
+		</jar>
+		
+		<jar destfile="${scripts.dir}/lib.srcs/${scripts.name}.jar">
 				<fileset dir="${scripts.dir}/src/">
 					<include name="**/*.java" />
 					<include name="**/*.scala" />
