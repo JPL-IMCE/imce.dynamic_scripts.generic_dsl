@@ -4,21 +4,23 @@
 	<property name="memorySize" 		value="-Xmx3076M"/>
 	<property name="maxPermGenSize"	value="-XX:MaxPermSize=1024M" />
 	
-	<property name="scripts.dir" 		location="."/>
-	<property name="project.dir" 		location="."/>
-	<property name="scripts.name" 		value="gov.nasa.jpl.dynamicScriptsDSL"/>
-	<property name="scripts.archive"		value="JPLDynamicScriptsDSL"/>
-
 	<import file="${md.install.dir}/data/eclipse/zip.xml"/>	
-	
-	<echoproperties prefix="md"/>
-	<echoproperties/>
 	
 	<property name="md.build.tools.dir"	location="${md.install.dir}/data/eclipse/resource/SMDP-PackageB" />
 	<!--
 	<import file="${md.build.tools.dir}/build.md.imce.scala.scripts.xml"/>
 	-->
 	<import file="./build.md.imce.scala.scripts.xml"/>
+	
+	<property name="scripts.dir" 		location="."/>
+	<property name="project.dir" 		location="."/>
+	<property name="scripts.name"		value="${ant.project.name}"/>
+	<property name="scripts.archive"		value="${ant.project.name}"/>
+	<property name="scripts.version"		value="${THIS_INFO.version}"/>
+	<property name="artifact.zip"		value="/MD${MagicDraw.version}-${scripts.archive}-v${scripts.version}.zip"/>
+		
+	<echoproperties prefix="md"/>
+	<echoproperties/>
 	
 	<target name="all" depends="all.error,all.ok"/>
 	
@@ -27,68 +29,83 @@
 		<fail/>
 	</target>
 		
-	<target name="all.ok" if="all.precondition.scala" depends="build,zip,install,bundle">
+	<target name="all.ok" if="all.precondition.scala" depends="build,build.ok,zip,install,bundle">
 		<save.script.properties/>
 	</target>
 	
 	<target name="zip">
-		<md.scripts.zip
-			scripts.dir="${scripts.dir}" 
-			scripts.name="${scripts.name}"
-			scripts.resource="${scripts.resource}"
-			scripts.archive="${scripts.archive}"
-			scripts.version="${THIS_JOB.version.human}">
-			<source-includes>
-				<include name="src/**/*.scala"/>
-			</source-includes>
-			<binary-includes>
-				<include name="bin/**/*.class"/>
-			</binary-includes>
-		</md.scripts.zip>
-	</target>
+			<zip destfile="artifacts/${artifact.zip}" >
+				<zipfileset dir="root" dirmode="755">
+					<exclude name="**/*.sh"/>
+					<include name="**/*" />
+				</zipfileset>
+			</zip>
 
-	<target name="install">
-		<mkdir dir="${md.install.dir}/lib/dynamicScripts"/>
-		<copy todir="${md.install.dir}/lib/dynamicScripts" verbose="true">
+			<zip destfile="artifacts/${artifact.zip}"  update="true">
+				<zipfileset dir="root" dirmode="755" filemode="555">
+					<include name="**/*.sh"/>
+				</zipfileset>
+			</zip>
+	</target>
+	
+	<target name="build.ok">
+
+		<delete failonerror="false" dir="root"/>
+		<mkdir dir="root"/>
+		<mkdir dir="root/lib"/>
+		<mkdir dir="root/lib/JPL"/>
+
+		<copy todir="root/lib/JPL" verbose="true">
 			<fileset dir="${scripts.dir}/lib">
 				<include name="*.jar"/>
 			</fileset>
 		</copy>
-			
-		<replace file="${md.install.dir}/bin/magicdraw.properties">
-  			<replacetoken>lib/patch.jar</replacetoken>
-  			<replacevalue>lib/dynamicScripts/gov.nasa.jpl.dynamicScripts.jar\:lib/patch.jar</replacevalue>
+		
+		<mkdir dir="root/lib.srcs"/>
+		<mkdir dir="root/lib.srcs/JPL"/>
+		
+		<copy todir="root/lib.srcs/JPL" verbose="true">
+			<fileset dir="${scripts.dir}/lib.srcs">
+				<include name="*.jar"/>
+			</fileset>
+		</copy>
+		
+		<path id="classpath.additions.ref">
+			<fileset dir="root">
+				<include name="lib/JPL/*.jar"/>
+			</fileset>
+		</path>
+		<pathconvert property="additions.classpath" refid="classpath.additions.ref" pathsep="\:">
+			<map from="${root.path}/" to=""/> 
+		</pathconvert>
+		<echoproperties prefix="additions."/>
+		
+		<mkdir dir="root/bin"/>
+		
+		<copy todir="root/bin">
+			<fileset dir="${md.install.dir}/bin">
+				<include name="magicdraw*.properties"/>
+			</fileset>
+		</copy>
+		
+		<replace>
+			<fileset dir="root/bin" includes="*.properties"/>
+			<replacefilter token="lib/patch.jar" value="${additions.classpath}\:lib/patch.jar"/>
 		</replace>
 		
-		<replace file="${md.install.dir}/bin/magicdraw-Java6.properties">
-  			<replacetoken>lib/patch.jar</replacetoken>
-  			<replacevalue>lib/dynamicScripts/gov.nasa.jpl.dynamicScripts.jar\:lib/patch.jar</replacevalue>
-		</replace>
+	</target>
+
+	<target name="install">
+		<md.install.zip
+			scripts.dir="${project.dir}" 
+			scripts.archive="${scripts.archive}"
+			scripts.version="${plugin.version}"
+			install.dir="${md.install.dir}"/>
+		<md.zip.all
+			bundle.dest.dir="artifacts"
+			bundle.name="${bundle.name}"
+			bundle.source.dir="${md.install.dir}"/>
 		
-		<replace file="${md.install.dir}/bin/magicdraw-Java7.properties">
-  			<replacetoken>lib/patch.jar</replacetoken>
-  			<replacevalue>lib/dynamicScripts/gov.nasa.jpl.dynamicScripts.jar\:lib/patch.jar</replacevalue>
-		</replace>
-			
-		<replace file="${md.install.dir}/bin/magicdraw.debug.properties">
-  			<replacetoken>lib/patch.jar</replacetoken>
-  			<replacevalue>lib/dynamicScripts/gov.nasa.jpl.dynamicScripts.jar\:lib/patch.jar</replacevalue>
-		</replace>
-			
-		<replace file="${md.install.dir}/bin/magicdraw.huge.properties">
-  			<replacetoken>lib/patch.jar</replacetoken>
-  			<replacevalue>lib/dynamicScripts/gov.nasa.jpl.dynamicScripts.jar\:lib/patch.jar</replacevalue>
-		</replace>
-  				
-		<replace file="${md.install.dir}/bin/magicdraw.large.properties">
-  			<replacetoken>lib/patch.jar</replacetoken>
-  			<replacevalue>lib/dynamicScripts/gov.nasa.jpl.dynamicScripts.jar\:lib/patch.jar</replacevalue>
-		</replace>
-  				
-		<replace file="${md.install.dir}/bin/magicdraw.small.properties">
-  			<replacetoken>lib/patch.jar</replacetoken>
-  			<replacevalue>lib/dynamicScripts/gov.nasa.jpl.dynamicScripts.jar\:lib/patch.jar</replacevalue>
-		</replace>
 	</target>
 		
 	<target name="bundle">
@@ -98,53 +115,4 @@
 			bundle.source.dir="${md.install.dir}"/>
 	</target>
 			
-	<path id="plugin.classpath">
-		<fileset dir="${md.install.dir}/plugins/com.nomagic.magicdraw.automaton">
-			<include name="*.jar"/>
-			<include name="lib/*.jar"/>
-		</fileset>
-		<fileset dir="${md.install.dir}/plugins/com.nomagic.magicdraw.qvt">
-			<include name="**/*.jar"/>
-		</fileset>
-		<fileset dir="${md.install.dir}/plugins/com.nomagic.magicdraw.dependencymatrix">
-			<include name="**/*.jar"/>
-		</fileset>
-		<fileset dir="${md.install.dir}/plugins/com.nomagic.magicdraw.diagramtable">
-			<include name="**/*.jar"/>
-		</fileset>
-		<fileset dir="${md.install.dir}/plugins/com.nomagic.magicdraw.ganttchartdiagram">
-			<include name="**/*.jar"/>
-		</fileset>
-		<fileset dir="${md.install.dir}/plugins/com.nomagic.magicdraw.migration">
-			<include name="**/*.jar"/>
-		</fileset>
-		<fileset dir="${md.install.dir}/plugins/com.nomagic.magicdraw.usagesdependencies">
-			<include name="**/*.jar"/>
-		</fileset>
-		<fileset dir="${md.install.dir}/plugins/com.nomagic.magicdraw.relationshipmap">
-			<include name="**/*.jar"/>
-		</fileset>
-		<fileset dir="${md.install.dir}/plugins/com.nomagic.magicdraw.sysml">
-			<include name="**/*.jar"/>
-		</fileset>
-		<fileset dir="${md.install.dir}/plugins/gov.nasa.jpl.magicdraw.qvto.library">
-			<include name="**/*.jar"/>
-		</fileset>
-		<fileset dir="${md.install.dir}/plugins/gov.nasa.jpl.magicdraw.log">
-			<include name="**/*.jar"/>
-		</fileset>
-		<fileset dir="${md.install.dir}/plugins/gov.nasa.jpl.magicdraw.projectUsageIntegrity">
-			<include name="**/*.jar"/>
-		</fileset>
-		<fileset dir="${md.install.dir}/plugins/gov.nasa.jpl.magicdraw.imce">
-			<include name="**/*.jar"/>
-		</fileset>
-		<fileset dir="${md.install.dir}/plugins/gov.nasa.jpl.magicdraw.ontorefactoring">
-			<include name="**/*.jar"/>
-		</fileset>
-		<fileset dir="${md.install.dir}/plugins/gov.nasa.jpl.magicdraw.scala">
-			<include name="**/*.jar"/>
-		</fileset>
-	</path>
-	
 </project>
