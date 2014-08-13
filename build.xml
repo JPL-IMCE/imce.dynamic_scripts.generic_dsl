@@ -99,7 +99,7 @@
 		<md.install.zip
 			scripts.dir="${project.dir}" 
 			scripts.archive="${scripts.archive}"
-			scripts.version="${plugin.version}"
+			scripts.version="${scripts.version}"
 			install.dir="${md.install.dir}"/>
 		<md.zip.all
 			bundle.dest.dir="artifacts"
