@@ -138,10 +138,12 @@
 	<target name="build.scalac" if="scala.compile.mode.scalac" depends="classpath2fileset">
 		<echoproperties prefix="md"/>
 		<mkdir dir="${scripts.dir}/bin"/>
-	    <scalac srcdir="${scripts.dir}/src" destdir="${scripts.dir}/bin"
+	    <scalac destdir="${scripts.dir}/bin"
             fork="true" target="jvm-1.6"
             deprecation="no" addparams="-no-specialization"
             jvmargs="-XX:+UseConcMarkSweepGC">
+	    		<sourcepath location="${scripts.dir}/src"/>
+	    		<sourcepath location="${scripts.dir}/tests"/>
 	   	 	<classpath>
 				<pathelement path="${java.class.path}" />
 				<path refid="classpath.libs.ref"/>

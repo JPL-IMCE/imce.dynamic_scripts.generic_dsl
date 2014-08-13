@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<project xmlns:qvto="http://www.eclipse.org/qvt/1.0.0/Operational" name="DynamicScriptsDSL" basedir=".">
+<project xmlns:qvto="http://www.eclipse.org/qvt/1.0.0/Operational" name="gov.nasa.jpl.dynamicScripts" basedir=".">
 
 	<property name="memorySize" 		value="-Xmx3076M"/>
 	<property name="maxPermGenSize"	value="-XX:MaxPermSize=1024M" />
@@ -30,23 +30,6 @@
 	<target name="all.ok" if="all.precondition.scala" depends="build,zip,install,bundle">
 		<save.script.properties/>
 	</target>
-	
-	<fileset id="scripts.profiles" dir="${scripts.dir}/profiles">
-		<include name="**/*.mdzip"/>
-	</fileset>
-
-	<fileset id="scripts.modelLibraries" dir="${scripts.dir}/modelLibraries">
-		<include name="**/*.mdzip"/>
-	</fileset>
-
-	<fileset id="scripts.tests" dir="${scripts.dir}/testResources">
-		<include name="**/*.mdzip"/>
-		<include name="**/*.properties"/>
-	</fileset>
-
-	<fileset id="scripts.samples" dir="${scripts.dir}/samples">
-		<include name="**/*.mdzip"/>
-	</fileset>
 	
 	<target name="zip">
 		<md.scripts.zip

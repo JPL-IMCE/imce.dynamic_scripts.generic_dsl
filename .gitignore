@@ -1,3 +1,4 @@
 .cache
 bin
 lib/gov.nasa.jpl.dynamicScriptsDSL.jar
+/bin.tests/
