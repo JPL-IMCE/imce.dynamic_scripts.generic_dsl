@@ -1,118 +1,110 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
 <project xmlns:qvto="http://www.eclipse.org/qvt/1.0.0/Operational" name="gov.nasa.jpl.dynamicScripts" basedir=".">
 
-	<property name="memorySize" 		value="-Xmx3076M"/>
-	<property name="maxPermGenSize"	value="-XX:MaxPermSize=1024M" />
-	
-	<import file="${md.install.dir}/data/eclipse/zip.xml"/>	
-	
-	<property name="md.build.tools.dir"	location="${md.install.dir}/data/eclipse/resource/SMDP-PackageB" />
+	<property name="memorySize" value="-Xmx3076M" />
+	<property name="maxPermGenSize" value="-XX:MaxPermSize=1024M" />
+
+	<import file="${md.install.dir}/data/eclipse/zip.xml" />
+
+	<property name="md.build.tools.dir" location="${md.install.dir}/data/eclipse/resource/SMDP-PackageB" />
 	<!--
 	<import file="${md.build.tools.dir}/build.md.imce.scala.scripts.xml"/>
 	-->
-	<import file="./build.md.imce.scala.scripts.xml"/>
-	
-	<property name="scripts.dir" 		location="."/>
-	<property name="project.dir" 		location="."/>
-	<property name="scripts.name"		value="${ant.project.name}"/>
-	<property name="scripts.archive"		value="${ant.project.name}"/>
-	<property name="scripts.version"		value="${THIS_INFO.version}"/>
-	<property name="artifact.zip"		value="/MD${MagicDraw.version}-${scripts.archive}-v${scripts.version}.zip"/>
-		
-	<echoproperties prefix="md"/>
-	<echoproperties/>
-	
-	<target name="all" depends="all.error,all.ok"/>
-	
-	<target name="all.error" unless="all.precondition.scala">
-		<echo message="Check the environment variables tested in the target 'all.precondition.scala'"/>
-		<fail/>
-	</target>
-		
-	<target name="all.ok" if="all.precondition.scala" depends="build,build.ok,zip,install,bundle">
-		<save.script.properties/>
-	</target>
-	
-	<target name="zip">
-			<zip destfile="artifacts/${artifact.zip}" >
-				<zipfileset dir="root" dirmode="755">
-					<exclude name="**/*.sh"/>
-					<include name="**/*" />
-				</zipfileset>
-			</zip>
+	<import file="./build.md.imce.scala.scripts.xml" />
 
-			<zip destfile="artifacts/${artifact.zip}"  update="true">
-				<zipfileset dir="root" dirmode="755" filemode="555">
-					<include name="**/*.sh"/>
-				</zipfileset>
-			</zip>
+	<property name="scripts.dir" location="." />
+	<property name="project.dir" location="." />
+	<property name="scripts.name" value="${ant.project.name}" />
+	<property name="scripts.archive" value="${ant.project.name}" />
+	<property name="scripts.version" value="${THIS_INFO.version}" />
+	<property name="artifact.zip" value="/MD${MagicDraw.version}-${scripts.archive}-v${scripts.version}.zip" />
+
+	<echoproperties prefix="md" />
+	<echoproperties />
+
+	<target name="all" depends="all.error,all.ok" />
+
+	<target name="all.error" unless="all.precondition.scala">
+		<echo message="Check the environment variables tested in the target 'all.precondition.scala'" />
+		<fail />
 	</target>
-	
+
+	<target name="all.ok" if="all.precondition.scala" depends="build,build.ok,zip,install,bundle">
+		<save.script.properties />
+	</target>
+
+	<target name="zip">
+		<zip destfile="artifacts/${artifact.zip}">
+			<zipfileset dir="root" dirmode="755">
+				<exclude name="**/*.sh" />
+				<include name="**/*" />
+			</zipfileset>
+		</zip>
+
+		<zip destfile="artifacts/${artifact.zip}" update="true">
+			<zipfileset dir="root" dirmode="755" filemode="555">
+				<include name="**/*.sh" />
+			</zipfileset>
+		</zip>
+	</target>
+
 	<target name="build.ok">
 
-		<delete failonerror="false" dir="root"/>
-		<mkdir dir="root"/>
-		<mkdir dir="root/lib"/>
-		<mkdir dir="root/lib/JPL"/>
+		<delete failonerror="false" dir="root" />
+		<mkdir dir="root" />
+		<mkdir dir="root/lib" />
+		<mkdir dir="root/lib/JPL" />
 
 		<copy todir="root/lib/JPL" verbose="true">
-			<fileset dir="${scripts.dir}/lib">
-				<include name="*.jar"/>
+			<fileset dir="${scripts.dir}/lib/JPL">
+				<include name="*.jar" />
 			</fileset>
 		</copy>
-		
-		<mkdir dir="root/lib.srcs"/>
-		<mkdir dir="root/lib.srcs/JPL"/>
-		
+
+		<mkdir dir="root/lib.srcs" />
+		<mkdir dir="root/lib.srcs/JPL" />
+
 		<copy todir="root/lib.srcs/JPL" verbose="true">
-			<fileset dir="${scripts.dir}/lib.srcs">
-				<include name="*.jar"/>
+			<fileset dir="${scripts.dir}/lib.srcs/JPL">
+				<include name="*.jar" />
 			</fileset>
 		</copy>
-		
+
 		<path id="classpath.additions.ref">
 			<fileset dir="root">
-				<include name="lib/JPL/*.jar"/>
+				<include name="lib/JPL/*.jar" />
 			</fileset>
 		</path>
+		
+		<property name="root.path" location="root"/>
 		<pathconvert property="additions.classpath" refid="classpath.additions.ref" pathsep="\:">
-			<map from="${root.path}/" to=""/> 
+			<map from="${root.path}/" to="" />
 		</pathconvert>
-		<echoproperties prefix="additions."/>
-		
-		<mkdir dir="root/bin"/>
-		
+		<echoproperties prefix="additions." />
+
+		<mkdir dir="root/bin" />
+
 		<copy todir="root/bin">
 			<fileset dir="${md.install.dir}/bin">
-				<include name="magicdraw*.properties"/>
+				<include name="magicdraw*.properties" />
 			</fileset>
 		</copy>
-		
+
 		<replace>
-			<fileset dir="root/bin" includes="*.properties"/>
-			<replacefilter token="lib/patch.jar" value="${additions.classpath}\:lib/patch.jar"/>
+			<fileset dir="root/bin" includes="*.properties" />
+			<replacefilter token="lib/patch.jar" value="${additions.classpath}\:lib/patch.jar" />
 		</replace>
-		
+
 	</target>
 
 	<target name="install">
-		<md.install.zip
-			scripts.dir="${project.dir}" 
-			scripts.archive="${scripts.archive}"
-			scripts.version="${scripts.version}"
-			install.dir="${md.install.dir}"/>
-		<md.zip.all
-			bundle.dest.dir="artifacts"
-			bundle.name="${bundle.name}"
-			bundle.source.dir="${md.install.dir}"/>
-		
+		<md.install.zip scripts.dir="${project.dir}" scripts.archive="${scripts.archive}" scripts.version="${scripts.version}" install.dir="${md.install.dir}" />
+		<md.zip.all bundle.dest.dir="artifacts" bundle.name="${bundle.name}" bundle.source.dir="${md.install.dir}" />
+
 	</target>
-		
+
 	<target name="bundle">
-		<md.zip.all
-			bundle.dest.dir="${scripts.dir}/artifacts"
-			bundle.name="${bundle.name}"
-			bundle.source.dir="${md.install.dir}"/>
+		<md.zip.all bundle.dest.dir="${scripts.dir}/artifacts" bundle.name="${bundle.name}" bundle.source.dir="${md.install.dir}" />
 	</target>
-			
+
 </project>
