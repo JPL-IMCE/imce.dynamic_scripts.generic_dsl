@@ -105,6 +105,8 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
 
   def QualifiedNames = rule { QualifiedName ~ zeroOrMore( ',' ~ QualifiedName ) ~> { ( name: QName, names: Seq[QName] ) => Seq( name ) ++ names } }
 
+  def HNamePath = rule { HumanName ~ zeroOrMore( '>' ~ HumanName ) ~> { ( name: HName, names: Seq[HName] ) => Seq( name ) ++ names } }
+
   /**
    * Prefixed Terminals
    * 
@@ -138,6 +140,8 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
   def pathFrom = rule { str( "pathFrom" ) ~ ':' ~ elementTypeDesignation }
   def pathTo = rule { str( "pathTo" ) ~ ':' ~ elementTypeDesignation }
 
+  def toolbarMenuPath_HNames = rule { str( "toolbarMenuPath" ) ~ ':' ~ '{' ~ HNamePath ~ '}' }
+  
   /**
    * Non-terminal rules.
    */
@@ -180,6 +184,14 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
 
   def DerivedFeature = rule { DelayedDerivedProperty | EarlyDerivedProperty | DelayedDerivedTable | EarlyDerivedTable }
 
+  def toolbarMenuAction = rule {
+    toolbarMenuPath_HNames ~ name_HumanName ~ icon_Filepath ~ bundleContext ~ class_JavaName ~ method_SimpleName
+  }
+  
+  def ToolbarMenuAction = rule { 
+    "MainToolbarMenuAction"  ~ '(' ~ toolbarMenuAction ~ ')' ~> MainToolbarMenuAction
+  }
+  
   def BrowserMenuAction = rule {
     "BrowserContextMenuAction" ~ '(' ~ dynamicScriptInfo ~ ')' ~> BrowserContextMenuAction
   }
@@ -218,7 +230,7 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
     "ToplevelRelationPath" ~ '(' ~ dynamicContextDiagramScriptInfo ~ elementPath ~ pathFrom ~ pathTo ~ ')' ~> ToplevelPathInstanceCreator
   }
 
-  def DynamicActionScripts = rule { ToplevelShapeCreator | ToplevelPathCreator | BrowserMenuAction | DiagramMenuAction }
+  def DynamicActionScripts = rule { ToplevelShapeCreator | ToplevelPathCreator | BrowserMenuAction | DiagramMenuAction | ToolbarMenuAction }
 
   def scripts = rule { "scripts" ~ '{' ~ zeroOrMore( DynamicActionScripts ) ~ '}' }
   def features = rule { "features" ~ '{' ~ zeroOrMore( DerivedFeature ) ~ '}' }

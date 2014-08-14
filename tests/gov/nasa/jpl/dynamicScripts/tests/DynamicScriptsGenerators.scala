@@ -48,6 +48,14 @@ import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes._
  */
 object DynamicScriptsGenerators {
 
+  val path1Names = for ( i1 <- Gen.choose(1, 9) ) yield HName(s"MyMenu${i1}")
+
+  val path2Names = for ( i2 <- Gen.choose(1, 9) ) yield HName(s"MySubMenu${i2}")
+
+  val toolbarMenuPathGen = for ( (p1, p2) <- Gen.zip(path1Names, path2Names) ) yield Seq( p1, p2 )
+  
+  val menuActionNameGen = for ( i3 <- Gen.choose(1, 9) ) yield HName(s"MyAction${i3}")
+  
   val metaclassNames = Gen.oneOf( "Association", "Class", "Datatype", "Element", "Property", "Package" )
 
   val metaclassGen = for ( m <- metaclassNames ) yield MetaclassDesignation( SName( m ) )
