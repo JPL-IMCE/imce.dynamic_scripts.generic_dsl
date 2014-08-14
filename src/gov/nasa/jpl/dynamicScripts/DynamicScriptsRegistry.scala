@@ -58,10 +58,13 @@ case class DynamicScriptsRegistry(
   stereotypedMetaclassCharacterizations: Map[String, scala.collection.immutable.SortedSet[ComputedCharacterization]],
   classifierCharacterizations: Map[String, scala.collection.immutable.SortedSet[ComputedCharacterization]],
   stereotypedClassifierCharacterizations: Map[String, scala.collection.immutable.SortedSet[ComputedCharacterization]],
+
   metaclassActions: Map[String, scala.collection.immutable.SortedSet[DynamicScriptsForInstancesOfKind]],
   stereotypedMetaclassActions: Map[String, scala.collection.immutable.SortedSet[DynamicScriptsForInstancesOfKind]],
   classifierActions: Map[String, scala.collection.immutable.SortedSet[DynamicScriptsForInstancesOfKind]],
-  stereotypedClassifierActions: Map[String, scala.collection.immutable.SortedSet[DynamicScriptsForInstancesOfKind]] ) {
+  stereotypedClassifierActions: Map[String, scala.collection.immutable.SortedSet[DynamicScriptsForInstancesOfKind]],
+
+  toolbarMenuPathActions: Map[String, scala.collection.immutable.SortedSet[DynamicScriptsForMainToolbarMenus]] ) {
 
   override def toString(): String = {
 
@@ -78,6 +81,7 @@ case class DynamicScriptsRegistry(
     buff ++= s"\n  stereotypedMetaclassActions=${mapToString( stereotypedMetaclassActions )},"
     buff ++= s"\n  classifierActions=${mapToString( classifierActions )},"
     buff ++= s"\n  stereotypedClassifierActions=${mapToString( stereotypedClassifierActions )}"
+    buff ++= s"\n  toolbarMenuPathActions=${mapToString( toolbarMenuPathActions )}"
     buff ++= "\n)"
 
     buff.toString()
@@ -104,15 +108,23 @@ object DynamicScriptsRegistry {
   def updatedSMap( map: SMap[String, DynamicScriptsForInstancesOfKind], k: String, a: DynamicScriptsForInstancesOfKind ): SMap[String, DynamicScriptsForInstancesOfKind] =
     updatedSMap( map, k, a, emptyDynamicActionScriptSet )
 
+  def emptyDynamicScriptsForMainToolbarMenusSet() = scala.collection.immutable.TreeSet[DynamicScriptsForMainToolbarMenus]()( DynamicScriptOrdering[DynamicScriptsForMainToolbarMenus]() )
+
+  def updatedSMap( map: SMap[String, DynamicScriptsForMainToolbarMenus], k: String, a: DynamicScriptsForMainToolbarMenus ): SMap[String, DynamicScriptsForMainToolbarMenus] =
+    updatedSMap( map, k, a, emptyDynamicScriptsForMainToolbarMenusSet )
+
   def init() = DynamicScriptsRegistry(
     metaclassCharacterizations = Map(),
     stereotypedMetaclassCharacterizations = Map(),
     classifierCharacterizations = Map(),
     stereotypedClassifierCharacterizations = Map(),
+
     metaclassActions = Map(),
     stereotypedMetaclassActions = Map(),
     classifierActions = Map(),
-    stereotypedClassifierActions = Map() )
+    stereotypedClassifierActions = Map(),
+
+    toolbarMenuPathActions = Map() )
 
   def merge( r: DynamicScriptsRegistry, dynamicScript: DynamicScript ): DynamicScriptsRegistry = dynamicScript match {
 
@@ -130,6 +142,7 @@ object DynamicScriptsRegistry {
       case _: StereotypedClassifiedInstanceDesignation => r.copy( stereotypedClassifierActions = DynamicScriptsRegistry.updatedSMap( r.stereotypedClassifierActions, s.name.hname, s ) )
     }
 
+    case t: DynamicScriptsForMainToolbarMenus => r.copy( toolbarMenuPathActions = DynamicScriptsRegistry.updatedSMap( r.toolbarMenuPathActions, t.name.hname, t ) )
   }
 
   protected def parseDynamicScript( file: File ): Either[List[DynamicScript], String] =

@@ -63,7 +63,9 @@ object DynamicScriptsTypes {
   }
   case class JName( jname: String )
   case class SName( sname: String )
-  case class HName( hname: String )
+  case class HName( hname: String ) {
+    def prettyPrint(): String = s"'${hname}'"
+  }
   case class FName( path: String )
 
   sealed abstract class BundleContext {
@@ -88,7 +90,7 @@ object DynamicScriptsTypes {
   }
   
   case class PluginContext(pluginID: HName) extends BundleContext {
-    def prettyPrint(indentation: String): String = s"${indentation}plugin.id: '${pluginID.hname}'"
+    def prettyPrint(indentation: String): String = s"${indentation}plugin.id: ${pluginID.prettyPrint()}"
     def sortKey(): String = s"plugin:${pluginID.hname}"
   }
   
@@ -100,7 +102,7 @@ object DynamicScriptsTypes {
     val methodName: SName
     def prettyPrintInfo( indentation: String ): String = 
       s"""|
-          |${indentation}name: '${name.hname}'${if ( icon.isDefined ) s"\n${indentation}icon: '${icon.get.path}'" else ""}
+          |${indentation}name: ${name.prettyPrint()}${if ( icon.isDefined ) s"\n${indentation}icon: '${icon.get.path}'" else ""}
           |${context.prettyPrint(indentation)}
           |${indentation}class: ${className.jname}
           |${indentation}method: ${methodName.sname}""".stripMargin
@@ -154,6 +156,21 @@ object DynamicScriptsTypes {
 
   sealed trait DynamicMenuActionScript {}
 
+  case class MainToolbarMenuAction(
+    toolbarMenuPath: Seq[HName],
+    name: HName,
+    icon: Option[FName],
+    context: BundleContext,
+    className: JName,
+    methodName: SName) extends DynamicActionScript with DynamicMenuActionScript {
+
+    override def prettyPrint( indentation: String ): String = {
+      val tpath =  ( for ( p <- toolbarMenuPath ) yield p.prettyPrint() ) mkString (
+            s"\n${indentation}toolbarMenuPath: { ", " > ", " }" )
+      indentation + s"MainToolbarMenuAction(${tpath}${prettyPrintInfo( indentation + TAB_INDENT )}\n${indentation})"
+    }
+  }
+  
   case class BrowserContextMenuAction(
     name: HName,
     icon: Option[FName],
@@ -184,7 +201,7 @@ object DynamicScriptsTypes {
           ( for ( ds <- diagramStereotypes ) yield s"'${ds.qname}'" ) mkString (
             s"\n${tab0}diagramStereotypes: {\n${tab1}", s",\n${tab1}", s"\n${tab0}}" )
       s"""|
-          |${tab0}name: '${name.hname}'${if ( icon.isDefined ) s"\n${tab0}icon: '${icon.get.path}'" else ""}
+          |${tab0}name: ${name.prettyPrint()}${if ( icon.isDefined ) s"\n${tab0}icon: '${icon.get.path}'" else ""}
           |${context.prettyPrint(tab0)}
           |${tab0}class: ${className.jname}
           |${tab0}method: ${methodName.sname}""".stripMargin
@@ -301,7 +318,8 @@ object DynamicScriptsTypes {
     override def prettyPrint( indentation: String ): String = {
       val indent1 = indentation + TAB_INDENT
       val indent2 = indent1 + TAB_INDENT
-      s"${indentation}characterization(\n${indent1}name='${name.hname}'\n${characterizesInstancesOf.prettyPrint(indent1)}\n${indent1}features {\n${( for ( df <- computedDerivedFeatures ) yield df.prettyPrint( indent2 ) ) mkString ( "\n" )}\n${indent1}})"
+      val prettyFeatures = s"${indent1}features {\n${( for ( df <- computedDerivedFeatures ) yield df.prettyPrint( indent2 ) ) mkString ( "\n" )}\n${indent1}})"
+      s"${indentation}characterization(\n${indent1}name=${name.prettyPrint()}\n${characterizesInstancesOf.prettyPrint(indent1)}\n${prettyFeatures}"
     }
 
   }
@@ -314,8 +332,20 @@ object DynamicScriptsTypes {
     override def prettyPrint( indentation: String ): String = {
       val indent1 = indentation + TAB_INDENT
       val indent2 = indent1 + TAB_INDENT
-      s"${indentation}dynamicScripts(\n${indent1}name='${name.hname}'\n${applicableTo.prettyPrint(indent1)}\n${indent1}scripts {\n${( for ( s <- scripts ) yield s.prettyPrint( indent2 ) ) mkString ( "\n" )}\n${indent1}})"
+      val prettyScripts = s"${indent1}scripts {\n${( for ( s <- scripts ) yield s.prettyPrint( indent2 ) ) mkString ( "\n" )}\n${indent1}})"
+      s"${indentation}dynamicScripts(\n${indent1}name=${name.prettyPrint()}\n${applicableTo.prettyPrint(indent1)}\n${prettyScripts}"
     }
   }
 
+  case class DynamicScriptsForMainToolbarMenus(
+      name: HName,
+      scripts: Seq[MainToolbarMenuAction]) extends DynamicScript {
+    
+    override def prettyPrint( indentation: String ): String = {
+      val indent1 = indentation + TAB_INDENT
+      val indent2 = indent1 + TAB_INDENT
+      val prettyScripts = s"${indent1}scripts {\n${( for ( s <- scripts ) yield s.prettyPrint( indent2 ) ) mkString ( "\n" )}\n${indent1}})"
+      s"${indentation}toolbarMenuScripts(\n${indent1}name=${name.prettyPrint()}\n${prettyScripts}"
+    }
+  }
 }
