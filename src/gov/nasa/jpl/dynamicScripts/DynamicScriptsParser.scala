@@ -230,11 +230,12 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
     "ToplevelRelationPath" ~ '(' ~ dynamicContextDiagramScriptInfo ~ elementPath ~ pathFrom ~ pathTo ~ ')' ~> ToplevelPathInstanceCreator
   }
 
-  def DynamicActionScripts = rule { ToplevelShapeCreator | ToplevelPathCreator | BrowserMenuAction | DiagramMenuAction | ToolbarMenuAction }
+  def DynamicActionScripts = rule { ToplevelShapeCreator | ToplevelPathCreator | BrowserMenuAction | DiagramMenuAction }
 
   def scripts = rule { "scripts" ~ '{' ~ zeroOrMore( DynamicActionScripts ) ~ '}' }
   def features = rule { "features" ~ '{' ~ zeroOrMore( DerivedFeature ) ~ '}' }
-
+  def menuScripts = rule { "scripts" ~ '{' ~ zeroOrMore( ToolbarMenuAction ) ~ '}' }
+  
   def DynamicScripts: Rule1[DynamicScriptsForInstancesOfKind] = rule {
     "dynamicScripts" ~ '(' ~ str( "name" ) ~ '=' ~ HumanName ~ elementTypeDesignation ~ scripts ~ ')' ~> DynamicScriptsForInstancesOfKind
   }
@@ -243,7 +244,11 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
     "characterization" ~ '(' ~ str( "name" ) ~ '=' ~ HumanName ~ elementTypeDesignation ~ features ~ ')' ~> ComputedCharacterization
   }
 
-  def Expression: Rule1[DynamicScript] = rule { DynamicScripts | DynamicCharacterization }
+  def ToolbarMenuScripts: Rule1[DynamicScriptsForMainToolbarMenus] = rule {
+    "toolbarMenuScripts" ~ '(' ~ str( "name" ) ~ '=' ~ HumanName ~ menuScripts ~ ')' ~> DynamicScriptsForMainToolbarMenus
+  }
+  
+  def Expression: Rule1[DynamicScript] = rule { DynamicScripts | DynamicCharacterization | ToolbarMenuScripts }
 }
 
 /**
