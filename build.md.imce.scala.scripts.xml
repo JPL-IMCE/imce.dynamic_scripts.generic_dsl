@@ -155,6 +155,8 @@
 		<jar destfile="${scripts.dir}/lib/JPL/${scripts.name}.jar">
 			<fileset dir="${scripts.dir}/bin/">
 				<include name="**/*.class" />
+			</fileset>
+			<fileset dir="${scripts.dir}/src/">
 				<include name="**/*.properties" />
 			</fileset>
 		</jar>
