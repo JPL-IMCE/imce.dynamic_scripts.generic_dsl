@@ -53,7 +53,7 @@
 		<mkdir dir="root/lib/JPL" />
 
 		<copy todir="root/lib/JPL" verbose="true">
-			<fileset dir="${scripts.dir}/lib/JPL">
+			<fileset dir="${scripts.dir}/lib">
 				<include name="*.jar" />
 			</fileset>
 		</copy>
@@ -62,7 +62,7 @@
 		<mkdir dir="root/lib.srcs/JPL" />
 
 		<copy todir="root/lib.srcs/JPL" verbose="true">
-			<fileset dir="${scripts.dir}/lib.srcs/JPL">
+			<fileset dir="${scripts.dir}/lib.srcs">
 				<include name="*.jar" />
 			</fileset>
 		</copy>
