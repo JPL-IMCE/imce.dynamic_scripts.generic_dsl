@@ -7,11 +7,8 @@
 	<import file="${md.install.dir}/data/eclipse/zip.xml" />
 
 	<property name="md.build.tools.dir" location="${md.install.dir}/data/eclipse/resource/SMDP-PackageB" />
-	<!--
-	<import file="${md.build.tools.dir}/build.md.imce.scala.scripts.xml"/>
-	-->
-	<import file="./build.md.imce.scala.scripts.xml" />
-
+	<import file="${md.build.tools.dir}/build.md.scala.dynamicScripts.xml"/>
+	
 	<property name="scripts.dir" location="." />
 	<property name="project.dir" location="." />
 	<property name="scripts.name" value="${ant.project.name}" />
