@@ -69,12 +69,12 @@ object DynamicScriptsTypes {
   case class FName( path: String )
 
   sealed abstract class BundleContext {
-    def prettyPrint(indentation: String): String
+    def prettyPrint( indentation: String ): String
     def sortKey(): String
   }
-  
-  case class ProjectContext(project: JName, dependencies: Seq[JName]) extends BundleContext {
-    def prettyPrint(indentation: String): String = {
+
+  case class ProjectContext( project: JName, dependencies: Seq[JName], requiresPlugin: Option[HName] ) extends BundleContext {
+    def prettyPrint( indentation: String ): String = {
       val tab0 = indentation
       val tab1 = tab0 + TAB_INDENT
       val deps =
@@ -83,27 +83,31 @@ object DynamicScriptsTypes {
         else
           ( for ( d <- dependencies ) yield d.jname ) mkString (
             s"\n${tab0}dependencies: {\n${tab1}", s"\n${tab1}", s"\n${tab0}}" )
-    
-      s"${indentation}project: ${project.jname}${deps}"
+
+      val rp = requiresPlugin match {
+        case None       => ""
+        case Some( hn ) => s"\n${tab0}requires.plugin.id: '${hn.hname}'"
+      }
+      s"${indentation}project: ${project.jname}${deps}${rp}"
     }
     def sortKey(): String = s"project:${project.jname}"
   }
-  
-  case class PluginContext(pluginID: HName) extends BundleContext {
-    def prettyPrint(indentation: String): String = s"${indentation}plugin.id: ${pluginID.prettyPrint()}"
+
+  case class PluginContext( pluginID: HName ) extends BundleContext {
+    def prettyPrint( indentation: String ): String = s"${indentation}plugin.id: ${pluginID.prettyPrint()}"
     def sortKey(): String = s"plugin:${pluginID.hname}"
   }
-  
+
   sealed abstract class DynamicScriptInfo {
     val name: HName
     val icon: Option[FName]
     val context: BundleContext
     val className: JName
     val methodName: SName
-    def prettyPrintInfo( indentation: String ): String = 
+    def prettyPrintInfo( indentation: String ): String =
       s"""|
           |${indentation}name: ${name.prettyPrint()}${if ( icon.isDefined ) s"\n${indentation}icon: '${icon.get.path}'" else ""}
-          |${context.prettyPrint(indentation)}
+          |${context.prettyPrint( indentation )}
           |${indentation}class: ${className.jname}
           |${indentation}method: ${methodName.sname}""".stripMargin
 
@@ -162,15 +166,15 @@ object DynamicScriptsTypes {
     icon: Option[FName],
     context: BundleContext,
     className: JName,
-    methodName: SName) extends DynamicActionScript with DynamicMenuActionScript {
+    methodName: SName ) extends DynamicActionScript with DynamicMenuActionScript {
 
     override def prettyPrint( indentation: String ): String = {
-      val tpath =  ( for ( p <- toolbarMenuPath ) yield p.prettyPrint() ) mkString (
-            s"\n${indentation}toolbarMenuPath: { ", " > ", " }" )
+      val tpath = ( for ( p <- toolbarMenuPath ) yield p.prettyPrint() ) mkString (
+        s"\n${indentation}toolbarMenuPath: { ", " > ", " }" )
       indentation + s"MainToolbarMenuAction(${tpath}${prettyPrintInfo( indentation + TAB_INDENT )}\n${indentation})"
     }
   }
-  
+
   case class BrowserContextMenuAction(
     name: HName,
     icon: Option[FName],
@@ -202,7 +206,7 @@ object DynamicScriptsTypes {
             s"\n${tab0}diagramStereotypes: {\n${tab1}", s",\n${tab1}", s"\n${tab0}}" )
       s"""|
           |${tab0}name: ${name.prettyPrint()}${if ( icon.isDefined ) s"\n${tab0}icon: '${icon.get.path}'" else ""}
-          |${context.prettyPrint(tab0)}
+          |${context.prettyPrint( tab0 )}
           |${tab0}class: ${className.jname}
           |${tab0}method: ${methodName.sname}""".stripMargin
     }
@@ -238,7 +242,7 @@ object DynamicScriptsTypes {
     override def prettyPrint( indentation: String ): String =
       info.prettyPrintKind( indentation, "DiagramContextMenuAction", "" )
   }
-  
+
   sealed abstract class ElementKindDesignation {
     def prettyPrint( indentation: String ): String
   }
@@ -258,7 +262,7 @@ object DynamicScriptsTypes {
   case class StereotypedClassifiedInstanceDesignation( metaclass: SName, classifier: QName, profile: QName, stereotype: QName ) extends ElementKindDesignation {
     override def prettyPrint( indentation: String ): String = s"${indentation}[ m: ${metaclass.sname}, c: ${classifier.prettyPrint()}, p: ${profile.prettyPrint()}, s: ${stereotype.prettyPrint()}]"
   }
-  
+
   sealed abstract class DynamicContextShapeCreationActionScript extends DynamicContextDiagramActionScript {}
 
   case class ToplevelShapeInstanceCreator(
@@ -274,8 +278,8 @@ object DynamicScriptsTypes {
     val diagramStereotypes = info.diagramStereotypes
 
     override def prettyPrint( indentation: String ): String =
-      info.prettyPrintKind( indentation, "ToplevelElementShape", 
-          elementShape.prettyPrint(s"\n${indentation}elementShape: ") )
+      info.prettyPrintKind( indentation, "ToplevelElementShape",
+        elementShape.prettyPrint( s"\n${indentation}elementShape: " ) )
   }
 
   sealed abstract class DynamicContextPathCreationActionScript extends DynamicContextDiagramActionScript {}
@@ -295,10 +299,10 @@ object DynamicScriptsTypes {
     val diagramStereotypes = info.diagramStereotypes
 
     override def prettyPrint( indentation: String ): String =
-      info.prettyPrintKind( indentation, "ToplevelRelationPath", 
-          elementPath.prettyPrint(s"\n${indentation}elementPath: ") +
-          pathFrom.prettyPrint(s"\n${indentation}pathFrom: ") +
-          pathTo.prettyPrint(s"\n${indentation}pathTo: "))
+      info.prettyPrintKind( indentation, "ToplevelRelationPath",
+        elementPath.prettyPrint( s"\n${indentation}elementPath: " ) +
+          pathFrom.prettyPrint( s"\n${indentation}pathFrom: " ) +
+          pathTo.prettyPrint( s"\n${indentation}pathTo: " ) )
   }
 
   sealed abstract class DynamicScript {
@@ -319,7 +323,7 @@ object DynamicScriptsTypes {
       val indent1 = indentation + TAB_INDENT
       val indent2 = indent1 + TAB_INDENT
       val prettyFeatures = s"${indent1}features {\n${( for ( df <- computedDerivedFeatures ) yield df.prettyPrint( indent2 ) ) mkString ( "\n" )}\n${indent1}})"
-      s"${indentation}characterization(\n${indent1}name=${name.prettyPrint()}\n${characterizesInstancesOf.prettyPrint(indent1)}\n${prettyFeatures}"
+      s"${indentation}characterization(\n${indent1}name=${name.prettyPrint()}\n${characterizesInstancesOf.prettyPrint( indent1 )}\n${prettyFeatures}"
     }
 
   }
@@ -333,14 +337,14 @@ object DynamicScriptsTypes {
       val indent1 = indentation + TAB_INDENT
       val indent2 = indent1 + TAB_INDENT
       val prettyScripts = s"${indent1}scripts {\n${( for ( s <- scripts ) yield s.prettyPrint( indent2 ) ) mkString ( "\n" )}\n${indent1}})"
-      s"${indentation}dynamicScripts(\n${indent1}name=${name.prettyPrint()}\n${applicableTo.prettyPrint(indent1)}\n${prettyScripts}"
+      s"${indentation}dynamicScripts(\n${indent1}name=${name.prettyPrint()}\n${applicableTo.prettyPrint( indent1 )}\n${prettyScripts}"
     }
   }
 
   case class DynamicScriptsForMainToolbarMenus(
-      name: HName,
-      scripts: Seq[MainToolbarMenuAction]) extends DynamicScript {
-    
+    name: HName,
+    scripts: Seq[MainToolbarMenuAction] ) extends DynamicScript {
+
     override def prettyPrint( indentation: String ): String = {
       val indent1 = indentation + TAB_INDENT
       val indent2 = indent1 + TAB_INDENT

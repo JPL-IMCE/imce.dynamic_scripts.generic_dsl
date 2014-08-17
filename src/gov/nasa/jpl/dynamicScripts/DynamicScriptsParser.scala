@@ -124,6 +124,7 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
   def dependencies_JavaName = rule { optional( str( "dependencies" ) ~ '{' ~ oneOrMore( JavaName ) ~ '}' ) ~> (_.getOrElse( Seq() )) }
   
   def plugin_HumanName = rule { str( "plugin.id" ) ~ ':' ~ HumanName }
+  def requiresPlugin_HumanName = rule { optional( str( "requires.plugin.id" ) ~ ':' ~ HumanName ) }
   
   def class_JavaName = rule { str( "class" ) ~ ':' ~ JavaName }
   def method_SimpleName = rule { str( "method" ) ~ ':' ~ SimpleName }
@@ -146,7 +147,7 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
    * Non-terminal rules.
    */
   
-  def projectContext = rule { project_JavaName ~ dependencies_JavaName ~> ProjectContext }
+  def projectContext = rule { project_JavaName ~ dependencies_JavaName ~ requiresPlugin_HumanName ~> ProjectContext }
   def pluginContext = rule { plugin_HumanName ~> PluginContext }
   def bundleContext = rule { projectContext | pluginContext }
 
