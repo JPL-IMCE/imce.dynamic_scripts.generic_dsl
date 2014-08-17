@@ -54,14 +54,17 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
   import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes.ScopeKind._
 
   val WhiteSpaceChar = CharPredicate( " \n\r\t\f" )
+  val CommentChar = CharPredicate.Visible ++ ' ' ++ '\t' -- '\n' -- '\r'
+  val CommentEnd = CharPredicate( "\n\r" )
   val AnyChar = CharPredicate.Visible -- '\'' -- WhiteSpaceChar
   val FileChar = CharPredicate.Alpha ++ '/' ++ '.' ++ '-' ++ '_'
 
-  implicit def VS( c: Char ): Rule0 = rule { ch( c ) ~ zeroOrMore( WhiteSpaceChar ) }
-  implicit def VS( s: String ): Rule0 = rule { str( s ) ~ zeroOrMore( WhiteSpaceChar ) }
+  def CommentString: Rule0 = rule { ch('#') ~ zeroOrMore( CommentChar ) ~ CommentEnd }
+  implicit def VS( c: Char ): Rule0 = rule { ch( c ) ~ zeroOrMore( WhiteSpaceChar | CommentString ) }
+  implicit def VS( s: String ): Rule0 = rule { str( s ) ~ zeroOrMore( WhiteSpaceChar | CommentString ) }
 
-  def VS = rule { zeroOrMore( WhiteSpaceChar ) }
-  def WS = rule { oneOrMore( WhiteSpaceChar ) }
+  def VS = rule { zeroOrMore( WhiteSpaceChar | CommentString ) }
+  def WS = rule { oneOrMore( WhiteSpaceChar | CommentString ) }
 
   def InputLine = rule { VS ~ oneOrMore( Expression ~ VS ) ~ EOI }
 
