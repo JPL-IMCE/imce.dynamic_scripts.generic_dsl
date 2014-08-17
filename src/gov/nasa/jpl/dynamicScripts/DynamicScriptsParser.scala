@@ -87,8 +87,8 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
 
   def HumanName = rule { ch( '\'' ) ~ capture( CharPredicate.Alpha ~ zeroOrMore( ch( ' ' ) ~ AnyChar | AnyChar ) ) ~ '\'' ~> ( HName( _ ) ) }
 
-  def SimpleName = rule { capture( CharPredicate.Alpha ~ zeroOrMore( CharPredicate.AlphaNum ) ) ~ WS ~> ( SName( _ ) ) }
-
+  def SimpleName = rule { capture( CharPredicate.Alpha ~ zeroOrMore( CharPredicate.AlphaNum ) ) ~ ( WS | !CharPredicate.AlphaNum )  ~> ( SName( _ ) ) }
+  
   def SimpleNameComma = rule { capture( CharPredicate.Alpha ~ zeroOrMore( CharPredicate.AlphaNum ) ) ~ VS ~ ',' ~> ( SName( _ ) ) }
 
   def AlphaAlphaNum = rule { CharPredicate.Alpha ~ zeroOrMore( CharPredicate.AlphaNum ) }
@@ -101,11 +101,11 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
  
   def QualifiedNameComma = rule { ch( '\'' ) ~ capture( AlphaAnyChar ~ zeroOrMore( str( "::" ) ~ AlphaAnyChar ) ) ~ '\'' ~ ',' ~> ( QName( _ ) ) }
   
-  def SimpleNames = rule { SimpleName ~ zeroOrMore( ',' ~ SimpleName ) ~> { ( name: SName, names: Seq[SName] ) => Seq( name ) ++ names } }
+  def SimpleNames = rule { '{' ~ SimpleName ~ zeroOrMore( ',' ~ SimpleName ) ~ '}' ~> { ( name: SName, names: Seq[SName] ) => Seq( name ) ++ names } }
 
-  def QualifiedNames = rule { QualifiedName ~ zeroOrMore( ',' ~ QualifiedName ) ~> { ( name: QName, names: Seq[QName] ) => Seq( name ) ++ names } }
+  def QualifiedNames = rule { '{' ~ QualifiedName ~ zeroOrMore( ',' ~ QualifiedName ) ~ '}' ~> { ( name: QName, names: Seq[QName] ) => Seq( name ) ++ names } }
 
-  def HNamePath = rule { HumanName ~ zeroOrMore( '>' ~ HumanName ) ~> { ( name: HName, names: Seq[HName] ) => Seq( name ) ++ names } }
+  def HNamePath = rule { '{' ~ HumanName ~ zeroOrMore( '>' ~ HumanName ) ~ '}' ~> { ( name: HName, names: Seq[HName] ) => Seq( name ) ++ names } }
 
   /**
    * Prefixed Terminals
@@ -113,8 +113,8 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
    * The prefix indicates the type of the terminal.
    */
   
-  def DiagramTypes = rule { optional( str( "diagramTypes" ) ~ ':' ~ '{' ~ SimpleNames ~ '}' ) ~> (_.getOrElse( Seq() )) }
-  def DiagramStereotypes = rule { optional( str( "diagramStereotypes" ) ~ ':' ~ '{' ~ QualifiedNames ~ '}' ) ~> (_.getOrElse( Seq() )) }
+  def DiagramTypes = rule { optional( str( "diagramTypes" ) ~ ':' ~ SimpleNames ) ~> (_.getOrElse( Seq() )) }
+  def DiagramStereotypes = rule { optional( str( "diagramStereotypes" ) ~ ':' ~ QualifiedNames ) ~> (_.getOrElse( Seq() )) }
   
   def name_HumanName = rule { str( "name" ) ~ ':' ~ HumanName }
   
@@ -128,7 +128,7 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
   def class_JavaName = rule { str( "class" ) ~ ':' ~ JavaName }
   def method_SimpleName = rule { str( "method" ) ~ ':' ~ SimpleName }
 
-  def metaclass_SimpleName = rule { str( "m" ) ~ ':' ~ SimpleName }
+  def metaclass_SimpleName = rule { '[' ~ str( "m" ) ~ ':' ~ SimpleName ~ ']' }
   def metaclass_SimpleNameComma = rule { str( "m" ) ~ ':' ~ SimpleNameComma }
   def profile_QualifiedNameComma = rule { str( "p" ) ~ ':' ~ QualifiedNameComma }
   def stereotype_QualifiedName = rule { str( "s" ) ~ ':' ~ QualifiedName }
@@ -140,7 +140,7 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
   def pathFrom = rule { str( "pathFrom" ) ~ ':' ~ elementTypeDesignation }
   def pathTo = rule { str( "pathTo" ) ~ ':' ~ elementTypeDesignation }
 
-  def toolbarMenuPath_HNames = rule { str( "toolbarMenuPath" ) ~ ':' ~ '{' ~ HNamePath ~ '}' }
+  def toolbarMenuPath_HNames = rule { str( "toolbarMenuPath" ) ~ ':' ~ HNamePath }
   
   /**
    * Non-terminal rules.
@@ -205,7 +205,7 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
   }
   
   def metaclassDesignation = rule {
-    '[' ~ metaclass_SimpleName ~ ']' ~> MetaclassDesignation
+    metaclass_SimpleName ~> MetaclassDesignation
   }
 
   def stereotypedMetaclassesignation = rule {
