@@ -95,13 +95,18 @@
 	</target>
 
 	<target name="install">
-		<md.install.zip scripts.dir="${project.dir}" scripts.archive="${scripts.archive}" scripts.version="${scripts.version}" install.dir="${md.install.dir}" />
-		<md.zip.all bundle.dest.dir="artifacts" bundle.name="${bundle.name}" bundle.source.dir="${md.install.dir}" />
-
+		<md.scripts.install.zip 
+			scripts.dir="${project.dir}" 
+			scripts.archive="${scripts.archive}" 
+			scripts.version="${scripts.version}" 
+			install.dir="${md.install.dir}" />
 	</target>
 
 	<target name="bundle">
-		<md.zip.all bundle.dest.dir="${scripts.dir}/artifacts" bundle.name="${bundle.name}" bundle.source.dir="${md.install.dir}" />
+		<md.zip.all 
+			bundle.dest.dir="${scripts.dir}/artifacts" 
+			bundle.name="${bundle.name}" 
+			bundle.source.dir="${md.install.dir}" />
 	</target>
 
 </project>
