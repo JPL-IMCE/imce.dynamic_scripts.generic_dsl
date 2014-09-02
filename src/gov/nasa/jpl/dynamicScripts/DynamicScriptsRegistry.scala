@@ -69,7 +69,7 @@ case class DynamicScriptsRegistry(
   override def toString(): String = {
 
     def mapToString[V <: DynamicScript]( map: Map[String, scala.collection.immutable.SortedSet[V]] ): String =
-      ( for ( ( k, cs ) <- map ) yield s"    '${k}' -> ${( for ( c <- cs ) yield c.prettyPrint( "      " ) ).mkString( "{\n", "\n", "\n    }\n" )}" ).mkString( "{\n", "\n    ", "  }" )
+      ( for ( ( k, cs ) <- map ) yield s"    '${k}' -> ${( for ( c <- cs ) yield c.prettyPrint( "      " ) ).mkString( "{\n", "\n", "\n    }\n" )}" ).mkString( "{\n", "\n", "  }" )
 
     val buff = new StringBuilder()
     buff ++= "DynamicScriptsRegistry("
@@ -95,23 +95,31 @@ object DynamicScriptsRegistry {
 
   type SMap[K, V] = Map[K, scala.collection.immutable.SortedSet[V]]
 
-  def updatedSMap[V]( map: SMap[String, V], key: String, value: V, default: => scala.collection.immutable.SortedSet[V] ): SMap[String, V] =
-    map.updated( key, map.getOrElse( key, default ) + value )
+  def updatedSMap[V]( 
+      map: SMap[String, V], key: String, value: V, 
+      default: => scala.collection.immutable.SortedSet[V], 
+      merge: ( (V, V) => V)): SMap[String, V] = {
+    val currentValues: scala.collection.immutable.SortedSet[V] = map.getOrElse( key, default )
+    val newValues: scala.collection.immutable.SortedSet[V] = 
+      if (currentValues.contains( value )) ( default /: currentValues ) { case ( ( s , v ) ) => s + merge(v, value) }
+      else currentValues + value
+    map.updated( key, newValues )
+  }
 
-  def emptyComputedCharacterizationSet() = scala.collection.immutable.TreeSet[ComputedCharacterization]()( DynamicScriptOrdering[ComputedCharacterization]() )
+  def emptyComputedCharacterizationSet() = scala.collection.immutable.TreeSet[ComputedCharacterization]()( ComputedCharacterizationOrdering() )
 
   def updatedSMap( map: SMap[String, ComputedCharacterization], k: String, c: ComputedCharacterization ): SMap[String, ComputedCharacterization] =
-    updatedSMap( map, k, c, emptyComputedCharacterizationSet )
+    updatedSMap( map, k, c, emptyComputedCharacterizationSet, DynamicScriptsTypes.merge )
 
-  def emptyDynamicActionScriptSet() = scala.collection.immutable.TreeSet[DynamicScriptsForInstancesOfKind]()( DynamicScriptOrdering[DynamicScriptsForInstancesOfKind]() )
+  def emptyDynamicActionScriptSet() = scala.collection.immutable.TreeSet[DynamicScriptsForInstancesOfKind]()( DynamicScriptsForInstancesOfKindOrdering() )
 
   def updatedSMap( map: SMap[String, DynamicScriptsForInstancesOfKind], k: String, a: DynamicScriptsForInstancesOfKind ): SMap[String, DynamicScriptsForInstancesOfKind] =
-    updatedSMap( map, k, a, emptyDynamicActionScriptSet )
+    updatedSMap( map, k, a, emptyDynamicActionScriptSet, DynamicScriptsTypes.merge )
 
-  def emptyDynamicScriptsForMainToolbarMenusSet() = scala.collection.immutable.TreeSet[DynamicScriptsForMainToolbarMenus]()( DynamicScriptOrdering[DynamicScriptsForMainToolbarMenus]() )
+  def emptyDynamicScriptsForMainToolbarMenusSet() = scala.collection.immutable.TreeSet[DynamicScriptsForMainToolbarMenus]()( DynamicScriptsForMainToolbarMenusOrdering() )
 
   def updatedSMap( map: SMap[String, DynamicScriptsForMainToolbarMenus], k: String, a: DynamicScriptsForMainToolbarMenus ): SMap[String, DynamicScriptsForMainToolbarMenus] =
-    updatedSMap( map, k, a, emptyDynamicScriptsForMainToolbarMenusSet )
+    updatedSMap( map, k, a, emptyDynamicScriptsForMainToolbarMenusSet, DynamicScriptsTypes.merge )
 
   def init() = DynamicScriptsRegistry(
     metaclassCharacterizations = Map(),
