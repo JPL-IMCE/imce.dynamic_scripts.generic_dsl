@@ -51,6 +51,17 @@ object DynamicScriptsTypes {
     val STEREOTYPE, METACLASS, CLASSIFIER = Value
   }
   import ScopeKind._
+  
+  object ScopeAccess extends Enumeration {
+    type ScopeAccess = Value
+    val READ_ONLY, READ_WRITE = Value
+    
+    def prettyPrint(access: ScopeAccess): String = access match {
+      case READ_ONLY => "r/o"
+      case READ_WRITE => "r/w"
+    }
+  }
+  import ScopeAccess._
 
   object BinaryDerivationRefresh extends Enumeration {
     type BinaryDerivationRefresh = Value
@@ -102,12 +113,14 @@ object DynamicScriptsTypes {
     val name: HName
     val icon: Option[FName]
     val context: BundleContext
+    val access: ScopeAccess
     val className: JName
     val methodName: SName
     def prettyPrintInfo( indentation: String ): String =
       s"""|
           |${indentation}name: ${name.prettyPrint()}${if ( icon.isDefined ) s"\n${indentation}icon: '${icon.get.path}'" else ""}
           |${context.prettyPrint( indentation )}
+          |${indentation}access: ${ScopeAccess.prettyPrint(access)}
           |${indentation}class: ${className.jname}
           |${indentation}method: ${methodName.sname}""".stripMargin
 
@@ -132,6 +145,7 @@ object DynamicScriptsTypes {
     name: HName,
     icon: Option[FName],
     context: BundleContext,
+    access: ScopeAccess,
     className: JName,
     methodName: SName,
     refresh: BinaryDerivationRefresh ) extends ComputedDerivedFeature {
@@ -143,6 +157,7 @@ object DynamicScriptsTypes {
     name: HName,
     icon: Option[FName],
     context: BundleContext,
+    access: ScopeAccess,
     className: JName,
     methodName: SName,
     refresh: BinaryDerivationRefresh ) extends ComputedDerivedFeature {
@@ -165,6 +180,7 @@ object DynamicScriptsTypes {
     name: HName,
     icon: Option[FName],
     context: BundleContext,
+    access: ScopeAccess,
     className: JName,
     methodName: SName ) extends DynamicActionScript with DynamicMenuActionScript {
 
@@ -179,6 +195,7 @@ object DynamicScriptsTypes {
     name: HName,
     icon: Option[FName],
     context: BundleContext,
+    access: ScopeAccess,
     className: JName,
     methodName: SName ) extends DynamicActionScript with DynamicMenuActionScript {
 
@@ -221,6 +238,7 @@ object DynamicScriptsTypes {
     diagramTypes: Seq[SName],
     diagramStereotypes: Seq[QName],
     context: BundleContext,
+    access: ScopeAccess,
     className: JName,
     methodName: SName ) extends DynamicContextDiagramActionScript {
     override def prettyPrint( indentation: String ): String = ???
@@ -234,6 +252,7 @@ object DynamicScriptsTypes {
     val name = info.name
     val icon = info.icon
     val context = info.context
+    val access = info.access
     val className = info.className
     val methodName = info.methodName
     val diagramTypes = info.diagramTypes
@@ -310,6 +329,7 @@ object DynamicScriptsTypes {
     val name = info.name
     val icon = info.icon
     val context = info.context
+    val access = info.access
     val className = info.className
     val methodName = info.methodName
     val diagramTypes = info.diagramTypes
@@ -331,6 +351,7 @@ object DynamicScriptsTypes {
     val name = info.name
     val icon = info.icon
     val context = info.context
+    val access = info.access
     val className = info.className
     val methodName = info.methodName
     val diagramTypes = info.diagramTypes

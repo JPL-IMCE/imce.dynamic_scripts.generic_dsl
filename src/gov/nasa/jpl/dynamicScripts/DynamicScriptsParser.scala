@@ -51,6 +51,7 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
 
   import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes._
   import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes.BinaryDerivationRefresh._
+  import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes.ScopeAccess._
   import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes.ScopeKind._
 
   val WhiteSpaceChar = CharPredicate( " \n\r\t\f" )
@@ -86,6 +87,10 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
   def ClassifierKind = rule { VS( "c:" ) ~> ( () => ScopeKind.CLASSIFIER ) }
   def scopeKind: Rule1[ScopeKind] = rule { StereotypeKind | MetaclassKind | ClassifierKind }
 
+  def ReadOnlyAccess = rule { VS( "r/o" ) ~> ( () => ScopeAccess.READ_ONLY ) }
+  def ReadWriteAccess = rule { VS( "r/w" ) ~> ( () => ScopeAccess.READ_WRITE ) }
+  def scopeAccess: Rule1[ScopeAccess] = rule { ReadOnlyAccess | ReadWriteAccess }
+  
   def Filepath = rule { ch( '\'' ) ~ capture( CharPredicate.Alpha ~ zeroOrMore( ch( ' ' ) ~ FileChar | FileChar ) ) ~ '\'' ~> ( FName( _ ) ) }
 
   def HumanName = rule { ch( '\'' ) ~ capture( CharPredicate.Alpha ~ zeroOrMore( ch( ' ' ) ~ AnyChar | AnyChar ) ) ~ '\'' ~> ( HName( _ ) ) }
@@ -146,6 +151,8 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
 
   def toolbarMenuPath_HNames = rule { str( "toolbarMenuPath" ) ~ ':' ~ HNamePath }
   
+  def access_ScopeAccess = rule { optional( str( "access" ) ~ ':' ~ scopeAccess ) ~> (_.getOrElse( ScopeAccess.READ_WRITE ) ) }
+  
   /**
    * Non-terminal rules.
    */
@@ -155,41 +162,41 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
   def bundleContext = rule { projectContext | pluginContext }
 
   def dynamicScriptInfo = rule {
-    name_HumanName ~ icon_Filepath ~ bundleContext ~ class_JavaName ~ method_SimpleName
+    name_HumanName ~ icon_Filepath ~ bundleContext ~ access_ScopeAccess ~ class_JavaName ~ method_SimpleName
   }
 
   def DelayedDerivedProperty = rule {
     "DelayedDerivedProperty" ~ '(' ~ dynamicScriptInfo ~ ')' ~> {
-      ( name: HName, icon: Option[FName], context: BundleContext, className: JName, method: SName ) =>
-        ComputedDerivedProperty( name, icon, context, className, method, DELAYED_COMPUTATION_UNTIL_INVOKED )
+      ( name: HName, icon: Option[FName], context: BundleContext, access: ScopeAccess, className: JName, method: SName ) =>
+        ComputedDerivedProperty( name, icon, context, access, className, method, DELAYED_COMPUTATION_UNTIL_INVOKED )
     }
   }
 
   def EarlyDerivedProperty = rule {
     "EarlyDerivedProperty" ~ '(' ~ dynamicScriptInfo ~ ')' ~> {
-      ( name: HName, icon: Option[FName], context: BundleContext, className: JName, method: SName ) =>
-        ComputedDerivedProperty( name, icon, context, className, method, EAGER_COMPUTATION_AS_NEEDED )
+      ( name: HName, icon: Option[FName], context: BundleContext, access: ScopeAccess, className: JName, method: SName ) =>
+        ComputedDerivedProperty( name, icon, context, access, className, method, EAGER_COMPUTATION_AS_NEEDED )
     }
   }
 
   def DelayedDerivedTable = rule {
     "DelayedDerivedTable" ~ '(' ~ dynamicScriptInfo ~ ')' ~> {
-      ( name: HName, icon: Option[FName], context: BundleContext, className: JName, method: SName ) =>
-        ComputedDerivedTable( name, icon, context, className, method, DELAYED_COMPUTATION_UNTIL_INVOKED )
+      ( name: HName, icon: Option[FName], context: BundleContext, access: ScopeAccess, className: JName, method: SName ) =>
+        ComputedDerivedTable( name, icon, context, access, className, method, DELAYED_COMPUTATION_UNTIL_INVOKED )
     }
   }
 
   def EarlyDerivedTable = rule {
     "EarlyDerivedTable" ~ '(' ~ dynamicScriptInfo ~ ')' ~> {
-      ( name: HName, icon: Option[FName], context: BundleContext, className: JName, method: SName ) =>
-        ComputedDerivedTable( name, icon, context, className, method, EAGER_COMPUTATION_AS_NEEDED )
+      ( name: HName, icon: Option[FName], context: BundleContext, access: ScopeAccess, className: JName, method: SName ) =>
+        ComputedDerivedTable( name, icon, context, access, className, method, EAGER_COMPUTATION_AS_NEEDED )
     }
   }
 
   def DerivedFeature = rule { DelayedDerivedProperty | EarlyDerivedProperty | DelayedDerivedTable | EarlyDerivedTable }
 
   def toolbarMenuAction = rule {
-    toolbarMenuPath_HNames ~ name_HumanName ~ icon_Filepath ~ bundleContext ~ class_JavaName ~ method_SimpleName
+    toolbarMenuPath_HNames ~ name_HumanName ~ icon_Filepath ~ bundleContext ~ access_ScopeAccess ~ class_JavaName ~ method_SimpleName
   }
   
   def ToolbarMenuAction = rule { 
@@ -201,7 +208,7 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
   }
   
   def dynamicContextDiagramScriptInfo = rule {
-    name_HumanName ~ icon_Filepath ~ DiagramTypes ~ DiagramStereotypes ~ bundleContext ~ class_JavaName ~ method_SimpleName ~> DynamicContextDiagramActionScriptInfo
+    name_HumanName ~ icon_Filepath ~ DiagramTypes ~ DiagramStereotypes ~ bundleContext ~ access_ScopeAccess ~ class_JavaName ~ method_SimpleName ~> DynamicContextDiagramActionScriptInfo
   }
 
   def DiagramMenuAction = rule {
