@@ -125,8 +125,33 @@ object DynamicScriptsTypes {
           |${indentation}method: ${methodName.sname}""".stripMargin
 
     def prettyPrint( indentation: String ): String
+
+    def sortKey(): String = s"${name.hname}|${context.sortKey()}|${className.jname}|${methodName.sname}"
   }
 
+  val DynamicScriptOrdering = new Ordering[DynamicScriptInfo] {
+    
+    override def compare( s1: DynamicScriptInfo, s2: DynamicScriptInfo ): Int = 
+      s1.sortKey().compareTo( s2.sortKey() )
+      
+  }
+  
+  sealed abstract class ValueTypeDesignation
+  
+  sealed abstract class PrimitiveTypeDesignation extends ValueTypeDesignation
+  
+  case class IntegerTypeDesignation() extends PrimitiveTypeDesignation
+  case class RationalTypeDesignation() extends PrimitiveTypeDesignation
+  case class RealTypeDesignation() extends PrimitiveTypeDesignation
+  case class StringTypeDesignation() extends PrimitiveTypeDesignation
+  
+  case class CustomTypeDesignation(typeDescriptor: HName) extends ValueTypeDesignation
+  
+  case class DerivedFeatureValueType(
+      key: SName,
+      typeName: HName,
+      typeInfo: ValueTypeDesignation)
+      
   sealed abstract class ComputedDerivedFeature extends DynamicScriptInfo {
     val refresh: BinaryDerivationRefresh
 
@@ -148,7 +173,8 @@ object DynamicScriptsTypes {
     access: ScopeAccess,
     className: JName,
     methodName: SName,
-    refresh: BinaryDerivationRefresh ) extends ComputedDerivedFeature {
+    refresh: BinaryDerivationRefresh,
+    valueType: Option[DerivedFeatureValueType]) extends ComputedDerivedFeature {
 
     override def prettyPrint( indentation: String ): String = prettyPrintComputed( indentation, "DerivedProperty" )
   }
@@ -160,19 +186,14 @@ object DynamicScriptsTypes {
     access: ScopeAccess,
     className: JName,
     methodName: SName,
-    refresh: BinaryDerivationRefresh ) extends ComputedDerivedFeature {
+    refresh: BinaryDerivationRefresh,
+    columnValueTypes: Option[Seq[DerivedFeatureValueType]]) extends ComputedDerivedFeature {
 
     override def prettyPrint( indentation: String ): String = prettyPrintComputed( indentation, "DerivedTable" )
   }
 
-  sealed abstract class DynamicActionScript extends DynamicScriptInfo {
-    def sortKey(): String = s"${name.hname}|${context.sortKey()}|${className.jname}|${methodName.sname}"
-  }
-
-  val DynamicActionScriptOrdering = new Ordering[DynamicActionScript] {
-    override def compare( a1: DynamicActionScript, a2: DynamicActionScript ): Int = a1.sortKey().compareTo( a2.sortKey() )
-  }
-
+  sealed abstract class DynamicActionScript extends DynamicScriptInfo
+  
   sealed trait DynamicMenuActionScript {}
 
   case class MainToolbarMenuAction(
@@ -204,7 +225,7 @@ object DynamicScriptsTypes {
   }
 
   sealed abstract class DynamicContextDiagramActionScript extends DynamicActionScript {
-    val diagramTypes: Seq[SName]
+    val diagramTypes: Seq[HName]
     val diagramStereotypes: Seq[QName]
 
     override def prettyPrintInfo( indentation: String ): String = {
@@ -214,7 +235,7 @@ object DynamicScriptsTypes {
         if ( diagramTypes.isEmpty )
           ""
         else
-          ( for ( dt <- diagramTypes ) yield dt.sname ) mkString ( s"\n${tab0}diagramTypes: {", ", ", "}" )
+          ( for ( dt <- diagramTypes ) yield s"'${dt.hname}'" ) mkString ( s"\n${tab0}diagramTypes: {", ", ", "}" )
       val dSTypes =
         if ( diagramStereotypes.isEmpty )
           ""
@@ -235,7 +256,7 @@ object DynamicScriptsTypes {
   case class DynamicContextDiagramActionScriptInfo(
     name: HName,
     icon: Option[FName],
-    diagramTypes: Seq[SName],
+    diagramTypes: Seq[HName],
     diagramStereotypes: Seq[QName],
     context: BundleContext,
     access: ScopeAccess,
@@ -262,7 +283,7 @@ object DynamicScriptsTypes {
       info.prettyPrintKind( indentation, "DiagramContextMenuAction", "" )
   }
 
-  sealed abstract class ElementKindDesignation {
+  sealed abstract class ElementKindDesignation extends ValueTypeDesignation {
     def prettyPrint( indentation: String ): String
     def compareTo( other: ElementKindDesignation ): Int
   }
