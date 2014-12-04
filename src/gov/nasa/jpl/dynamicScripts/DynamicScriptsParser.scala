@@ -59,6 +59,7 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
   val LineEnd = CharPredicate( "\n\r" )
   val AnyChar = CharPredicate.Visible -- '\'' -- WhiteSpaceChar
   val FileChar = CharPredicate.Alpha ++ '/' ++ '.' ++ '-' ++ '_'
+  val AlphaOrStar = CharPredicate.Alpha ++ '*'
 
   def CommentString: Rule0 = rule { ch('#') ~ zeroOrMore( CommentChar ) ~ LineEnd }
   implicit def VS( c: Char ): Rule0 = rule { ch( c ) ~ zeroOrMore( WhiteSpaceChar | CommentString ) }
@@ -105,7 +106,7 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
 
   def JavaName = rule { capture( AlphaAlphaNum ~ zeroOrMore( ch( '.' ) ~ AlphaAlphaNum ) ) ~ VS ~> ( JName( _ ) ) }
 
-  def AlphaAnyChar = rule { CharPredicate.Alpha ~ zeroOrMore( ch( ' ' ) ~ AnyChar | AnyChar ) }
+  def AlphaAnyChar = rule { AlphaOrStar ~ zeroOrMore( ch( ' ' ) ~ AnyChar | AnyChar ) }
   
   def QualifiedName = rule { ch( '\'' ) ~ capture( AlphaAnyChar ~ zeroOrMore( str( "::" ) ~ AlphaAnyChar ) ) ~ '\'' ~> ( QName( _ ) ) }
  
@@ -207,6 +208,20 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
   def derivedProperty_valueType = rule { optional( str( "valueType" ) ~ ':' ~ derivedFeatureValueType ) }
   def derivedTable_valueTypeColumns = rule { optional( str( "columnValueTypes" ) ~ ':' ~ derivedFeatureValueTypes ) }
   
+  def DelayedDerivedWidget = rule {
+    "DelayedDerivedWidget" ~ '(' ~ dynamicScriptInfo ~ ')' ~> {
+      ( name: HName, icon: Option[FName], context: BundleContext, access: ScopeAccess, className: JName, method: SName ) =>
+        ComputedDerivedWidget( name, icon, context, access, className, method, DELAYED_COMPUTATION_UNTIL_INVOKED )
+    }
+  }
+
+  def EarlyDerivedWidget = rule {
+    "EarlyDerivedWidget" ~ '(' ~ dynamicScriptInfo ~ ')' ~> {
+      ( name: HName, icon: Option[FName], context: BundleContext, access: ScopeAccess, className: JName, method: SName ) =>
+        ComputedDerivedWidget( name, icon, context, access, className, method, EAGER_COMPUTATION_AS_NEEDED )
+    }
+  }
+  
   def DelayedDerivedProperty = rule {
     "DelayedDerivedProperty" ~ '(' ~ dynamicScriptInfo ~ derivedProperty_valueType ~ ')' ~> {
       ( name: HName, icon: Option[FName], context: BundleContext, access: ScopeAccess, className: JName, method: SName, valueType: Option[DerivedFeatureValueType] ) =>
@@ -235,7 +250,21 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
     }
   }
 
-  def DerivedFeature = rule { DelayedDerivedProperty | EarlyDerivedProperty | DelayedDerivedTable | EarlyDerivedTable }
+  def DelayedDerivedTree = rule {
+    "DelayedDerivedTree" ~ '(' ~ dynamicScriptInfo ~ derivedTable_valueTypeColumns ~ ')' ~> {
+      ( name: HName, icon: Option[FName], context: BundleContext, access: ScopeAccess, className: JName, method: SName, valueTypes: Option[Seq[DerivedFeatureValueType]] ) =>
+        ComputedDerivedTree( name, icon, context, access, className, method, DELAYED_COMPUTATION_UNTIL_INVOKED, valueTypes )
+    }
+  }
+
+  def EarlyDerivedTree = rule {
+    "EarlyDerivedTree" ~ '(' ~ dynamicScriptInfo ~ derivedTable_valueTypeColumns ~ ')' ~> {
+      ( name: HName, icon: Option[FName], context: BundleContext, access: ScopeAccess, className: JName, method: SName, valueTypes: Option[Seq[DerivedFeatureValueType]] ) =>
+        ComputedDerivedTree( name, icon, context, access, className, method, EAGER_COMPUTATION_AS_NEEDED, valueTypes )
+    }
+  }
+  
+  def DerivedFeature = rule { DelayedDerivedWidget | EarlyDerivedWidget | DelayedDerivedProperty | EarlyDerivedProperty | DelayedDerivedTable | EarlyDerivedTable | DelayedDerivedTree | EarlyDerivedTree }
 
   def toolbarMenuAction = rule {
     toolbarMenuPath_HNames ~ name_HumanName ~ icon_Filepath ~ bundleContext ~ access_ScopeAccess ~ class_JavaName ~ method_SimpleName
