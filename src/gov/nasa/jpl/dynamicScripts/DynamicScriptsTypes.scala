@@ -51,13 +51,13 @@ object DynamicScriptsTypes {
     val STEREOTYPE, METACLASS, CLASSIFIER = Value
   }
   import ScopeKind._
-  
+
   object ScopeAccess extends Enumeration {
     type ScopeAccess = Value
     val READ_ONLY, READ_WRITE = Value
-    
-    def prettyPrint(access: ScopeAccess): String = access match {
-      case READ_ONLY => "r/o"
+
+    def prettyPrint( access: ScopeAccess ): String = access match {
+      case READ_ONLY  => "r/o"
       case READ_WRITE => "r/w"
     }
   }
@@ -120,12 +120,37 @@ object DynamicScriptsTypes {
       s"""|
           |${indentation}name: ${name.prettyPrint()}${if ( icon.isDefined ) s"\n${indentation}icon: '${icon.get.path}'" else ""}
           |${context.prettyPrint( indentation )}
-          |${indentation}access: ${ScopeAccess.prettyPrint(access)}
+          |${indentation}access: ${ScopeAccess.prettyPrint( access )}
           |${indentation}class: ${className.jname}
           |${indentation}method: ${methodName.sname}""".stripMargin
 
     def prettyPrint( indentation: String ): String
+
+    def sortKey(): String = s"${name.hname}|${context.sortKey()}|${className.jname}|${methodName.sname}"
   }
+
+  val DynamicScriptOrdering = new Ordering[DynamicScriptInfo] {
+
+    override def compare( s1: DynamicScriptInfo, s2: DynamicScriptInfo ): Int =
+      s1.sortKey().compareTo( s2.sortKey() )
+
+  }
+
+  sealed abstract class ValueTypeDesignation
+
+  sealed abstract class PrimitiveTypeDesignation extends ValueTypeDesignation
+
+  case class IntegerTypeDesignation() extends PrimitiveTypeDesignation
+  case class RationalTypeDesignation() extends PrimitiveTypeDesignation
+  case class RealTypeDesignation() extends PrimitiveTypeDesignation
+  case class StringTypeDesignation() extends PrimitiveTypeDesignation
+
+  case class CustomTypeDesignation( typeDescriptor: HName ) extends ValueTypeDesignation
+
+  case class DerivedFeatureValueType(
+    key: SName,
+    typeName: HName,
+    typeInfo: ValueTypeDesignation )
 
   sealed abstract class ComputedDerivedFeature extends DynamicScriptInfo {
     val refresh: BinaryDerivationRefresh
@@ -141,7 +166,7 @@ object DynamicScriptsTypes {
           |\n${indentation})""".stripMargin
   }
 
-  case class ComputedDerivedProperty(
+  case class ComputedDerivedWidget(
     name: HName,
     icon: Option[FName],
     context: BundleContext,
@@ -153,6 +178,19 @@ object DynamicScriptsTypes {
     override def prettyPrint( indentation: String ): String = prettyPrintComputed( indentation, "DerivedProperty" )
   }
 
+  case class ComputedDerivedProperty(
+    name: HName,
+    icon: Option[FName],
+    context: BundleContext,
+    access: ScopeAccess,
+    className: JName,
+    methodName: SName,
+    refresh: BinaryDerivationRefresh,
+    valueType: Option[DerivedFeatureValueType] ) extends ComputedDerivedFeature {
+
+    override def prettyPrint( indentation: String ): String = prettyPrintComputed( indentation, "DerivedProperty" )
+  }
+
   case class ComputedDerivedTable(
     name: HName,
     icon: Option[FName],
@@ -160,18 +198,26 @@ object DynamicScriptsTypes {
     access: ScopeAccess,
     className: JName,
     methodName: SName,
-    refresh: BinaryDerivationRefresh ) extends ComputedDerivedFeature {
+    refresh: BinaryDerivationRefresh,
+    columnValueTypes: Option[Seq[DerivedFeatureValueType]] ) extends ComputedDerivedFeature {
 
     override def prettyPrint( indentation: String ): String = prettyPrintComputed( indentation, "DerivedTable" )
   }
 
-  sealed abstract class DynamicActionScript extends DynamicScriptInfo {
-    def sortKey(): String = s"${name.hname}|${context.sortKey()}|${className.jname}|${methodName.sname}"
+  case class ComputedDerivedTree(
+    name: HName,
+    icon: Option[FName],
+    context: BundleContext,
+    access: ScopeAccess,
+    className: JName,
+    methodName: SName,
+    refresh: BinaryDerivationRefresh,
+    columnValueTypes: Option[Seq[DerivedFeatureValueType]] ) extends ComputedDerivedFeature {
+
+    override def prettyPrint( indentation: String ): String = prettyPrintComputed( indentation, "DerivedTree" )
   }
 
-  val DynamicActionScriptOrdering = new Ordering[DynamicActionScript] {
-    override def compare( a1: DynamicActionScript, a2: DynamicActionScript ): Int = a1.sortKey().compareTo( a2.sortKey() )
-  }
+  sealed abstract class DynamicActionScript extends DynamicScriptInfo
 
   sealed trait DynamicMenuActionScript {}
 
@@ -204,7 +250,7 @@ object DynamicScriptsTypes {
   }
 
   sealed abstract class DynamicContextDiagramActionScript extends DynamicActionScript {
-    val diagramTypes: Seq[SName]
+    val diagramTypes: Seq[HName]
     val diagramStereotypes: Seq[QName]
 
     override def prettyPrintInfo( indentation: String ): String = {
@@ -214,7 +260,7 @@ object DynamicScriptsTypes {
         if ( diagramTypes.isEmpty )
           ""
         else
-          ( for ( dt <- diagramTypes ) yield dt.sname ) mkString ( s"\n${tab0}diagramTypes: {", ", ", "}" )
+          ( for ( dt <- diagramTypes ) yield s"'${dt.hname}'" ) mkString ( s"\n${tab0}diagramTypes: {", ", ", "}" )
       val dSTypes =
         if ( diagramStereotypes.isEmpty )
           ""
@@ -235,7 +281,7 @@ object DynamicScriptsTypes {
   case class DynamicContextDiagramActionScriptInfo(
     name: HName,
     icon: Option[FName],
-    diagramTypes: Seq[SName],
+    diagramTypes: Seq[HName],
     diagramStereotypes: Seq[QName],
     context: BundleContext,
     access: ScopeAccess,
@@ -262,7 +308,7 @@ object DynamicScriptsTypes {
       info.prettyPrintKind( indentation, "DiagramContextMenuAction", "" )
   }
 
-  sealed abstract class ElementKindDesignation {
+  sealed abstract class ElementKindDesignation extends ValueTypeDesignation {
     def prettyPrint( indentation: String ): String
     def compareTo( other: ElementKindDesignation ): Int
   }
@@ -281,11 +327,11 @@ object DynamicScriptsTypes {
       case _: MetaclassDesignation => 1
       case smd: StereotypedMetaclassDesignation =>
         metaclass.sname.compareTo( smd.metaclass.sname ) match {
-          case c @ ( -1 | 1 ) => c
           case 0 => profile.qname.compareTo( smd.profile.qname ) match {
-            case c @ ( -1 | 1 ) => c
-            case 0              => stereotype.qname.compareTo( smd.stereotype.qname )
+            case 0 => stereotype.qname.compareTo( smd.stereotype.qname )
+            case c => c
           }
+          case c => c
         }
       case _ => -1
     }
@@ -296,8 +342,8 @@ object DynamicScriptsTypes {
     def compareTo( other: ElementKindDesignation ): Int = other match {
       case _@ ( _: MetaclassDesignation | _: StereotypedMetaclassDesignation ) => 1
       case cdi: ClassifiedInstanceDesignation => metaclass.sname.compareTo( cdi.metaclass.sname ) match {
-        case c @ ( -1 | 1 ) => c
-        case 0              => classifier.qname.compareTo( cdi.classifier.qname )
+        case 0 => classifier.qname.compareTo( cdi.classifier.qname )
+        case c => c
       }
       case _ => -1
     }
@@ -308,14 +354,14 @@ object DynamicScriptsTypes {
     def compareTo( other: ElementKindDesignation ): Int = other match {
       case _@ ( _: MetaclassDesignation | _: StereotypedMetaclassDesignation | _: ClassifiedInstanceDesignation ) => 1
       case scid: StereotypedClassifiedInstanceDesignation => metaclass.sname.compareTo( scid.metaclass.sname ) match {
-        case c @ ( -1 | 1 ) => c
         case 0 => classifier.qname.compareTo( scid.classifier.qname ) match {
-          case c @ ( -1 | 1 ) => c
           case 0 => profile.qname.compareTo( scid.profile.qname ) match {
-            case c @ ( -1 | 1 ) => c
-            case 0              => stereotype.qname.compareTo( scid.stereotype.qname )
+            case 0 => stereotype.qname.compareTo( scid.stereotype.qname )
+            case c => c
           }
+          case c => c
         }
+        case c => c
       }
     }
   }
@@ -386,15 +432,15 @@ object DynamicScriptsTypes {
   case class ComputedCharacterizationOrdering() extends Ordering[ComputedCharacterization] {
     def compare( c1: ComputedCharacterization, c2: ComputedCharacterization ): Int =
       c1.name.hname.compareTo( c2.name.hname ) match {
-        case c @ ( 1 | -1 ) => c
-        case 0              => c1.characterizesInstancesOf.compareTo( c2.characterizesInstancesOf )
+        case 0 => c1.characterizesInstancesOf.compareTo( c2.characterizesInstancesOf )
+        case c => c
       }
   }
 
-  def merge( c1: ComputedCharacterization, c2: ComputedCharacterization): ComputedCharacterization = 
+  def merge( c1: ComputedCharacterization, c2: ComputedCharacterization ): ComputedCharacterization =
     if ( ComputedCharacterizationOrdering().compare( c1, c2 ) != 0 ) c1
     else c1.copy( computedDerivedFeatures = c1.computedDerivedFeatures ++ c2.computedDerivedFeatures )
-    
+
   case class DynamicScriptsForInstancesOfKind(
     name: HName,
     applicableTo: ElementKindDesignation,
@@ -411,15 +457,15 @@ object DynamicScriptsTypes {
   case class DynamicScriptsForInstancesOfKindOrdering() extends Ordering[DynamicScriptsForInstancesOfKind] {
     def compare( c1: DynamicScriptsForInstancesOfKind, c2: DynamicScriptsForInstancesOfKind ): Int =
       c1.name.hname.compareTo( c2.name.hname ) match {
-        case c @ ( 1 | -1 ) => c
-        case 0              => c1.applicableTo.compareTo( c2.applicableTo )
+        case 0 => c1.applicableTo.compareTo( c2.applicableTo )
+        case c => c
       }
   }
 
-  def merge( c1: DynamicScriptsForInstancesOfKind, c2: DynamicScriptsForInstancesOfKind): DynamicScriptsForInstancesOfKind =
+  def merge( c1: DynamicScriptsForInstancesOfKind, c2: DynamicScriptsForInstancesOfKind ): DynamicScriptsForInstancesOfKind =
     if ( DynamicScriptsForInstancesOfKindOrdering().compare( c1, c2 ) != 0 ) c1
     else c1.copy( scripts = c1.scripts ++ c2.scripts )
-  
+
   case class DynamicScriptsForMainToolbarMenus(
     name: HName,
     scripts: Seq[MainToolbarMenuAction] ) extends DynamicScript {
@@ -436,9 +482,9 @@ object DynamicScriptsTypes {
     def compare( c1: DynamicScriptsForMainToolbarMenus, c2: DynamicScriptsForMainToolbarMenus ): Int =
       c1.name.hname.compareTo( c2.name.hname )
   }
-  
-  def merge( c1: DynamicScriptsForMainToolbarMenus, c2: DynamicScriptsForMainToolbarMenus): DynamicScriptsForMainToolbarMenus =
+
+  def merge( c1: DynamicScriptsForMainToolbarMenus, c2: DynamicScriptsForMainToolbarMenus ): DynamicScriptsForMainToolbarMenus =
     if ( DynamicScriptsForMainToolbarMenusOrdering().compare( c1, c2 ) != 0 ) c1
     else c1.copy( scripts = c1.scripts ++ c2.scripts )
-  
+
 }
