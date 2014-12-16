@@ -102,7 +102,7 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
   
   def SimpleNameComma = rule { capture( CharPredicate.Alpha ~ zeroOrMore( CharPredicate.AlphaNum ) ) ~ VS ~ ',' ~> ( SName( _ ) ) }
 
-  def AlphaAlphaNum = rule { CharPredicate.Alpha ~ zeroOrMore( CharPredicate.AlphaNum ) }
+  def AlphaAlphaNum = rule { CharPredicate.Alpha ~ zeroOrMore( CharPredicate.AlphaNum ++ '_' ) }
 
   def JavaName = rule { capture( AlphaAlphaNum ~ zeroOrMore( ch( '.' ) ~ AlphaAlphaNum ) ) ~ VS ~> ( JName( _ ) ) }
 
