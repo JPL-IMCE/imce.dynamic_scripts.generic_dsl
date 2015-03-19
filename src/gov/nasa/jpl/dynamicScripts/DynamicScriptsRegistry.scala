@@ -41,14 +41,13 @@ package gov.nasa.jpl.dynamicScripts
 
 import java.io.File
 import scala.io.Source
-
 import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes._
 import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes.BinaryDerivationRefresh._
 import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes.ScopeKind._
-
 import scala.util.Success
 import scala.util.Failure
 import org.parboiled2.ParseError
+import java.nio.file.Paths
 
 /**
  * @author Nicolas.F.Rouquette@jpl.nasa.gov
@@ -95,13 +94,13 @@ object DynamicScriptsRegistry {
 
   type SMap[K, V] = Map[K, scala.collection.immutable.SortedSet[V]]
 
-  def updatedSMap[V]( 
-      map: SMap[String, V], key: String, value: V, 
-      default: => scala.collection.immutable.SortedSet[V], 
-      merge: ( (V, V) => V)): SMap[String, V] = {
+  def updatedSMap[V](
+    map: SMap[String, V], key: String, value: V,
+    default: => scala.collection.immutable.SortedSet[V],
+    merge: ( ( V, V ) => V ) ): SMap[String, V] = {
     val currentValues: scala.collection.immutable.SortedSet[V] = map.getOrElse( key, default )
-    val newValues: scala.collection.immutable.SortedSet[V] = 
-      if (currentValues.contains( value )) ( default /: currentValues ) { case ( ( s , v ) ) => s + merge(v, value) }
+    val newValues: scala.collection.immutable.SortedSet[V] =
+      if ( currentValues.contains( value ) ) ( default /: currentValues ) { case ( ( s, v ) ) => s + merge( v, value ) }
       else currentValues + value
     map.updated( key, newValues )
   }
@@ -169,9 +168,16 @@ object DynamicScriptsRegistry {
   def mergeDynamicScripts( r: DynamicScriptsRegistry, filepaths: List[String] ): ( DynamicScriptsRegistry, List[String] ) =
     ( ( r, List[String]() ) /: filepaths ) {
       case ( ( r: DynamicScriptsRegistry, errors: List[String] ), filepath: String ) =>
-        parseDynamicScript( new File( filepath ) ) match {
-          case Left( scripts: List[DynamicScript] ) => ( ( r /: scripts ) { ( ri, script ) => merge( ri, script ) }, errors )
-          case Right( error: String )               => ( r, errors :+ error )
+        try {
+          val path = Paths.get( filepath ).toRealPath()
+          parseDynamicScript( path.toFile ) match {
+            case Left( scripts: List[DynamicScript] ) => ( ( r /: scripts ) { ( ri, script ) => merge( ri, script ) }, errors )
+            case Right( error: String )               => ( r, errors :+ error )
+          }
+
+        } catch {
+          case t: Throwable =>
+            ( r, errors :+ t.getClass.getName+" for dynamic script filepath: '"+filepath+"': "+t.getMessage )
         }
     }
 
