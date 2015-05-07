@@ -51,18 +51,25 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
 
   import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes._
   import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes.BinaryDerivationRefresh._
+  import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes.ScopeAccess._
   import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes.ScopeKind._
 
   val WhiteSpaceChar = CharPredicate( " \n\r\t\f" )
+  val CommentChar = CharPredicate.Visible ++ ' ' ++ '\t' -- '\n' -- '\r'
+  val LineEnd = CharPredicate( "\n\r" )
   val AnyChar = CharPredicate.Visible -- '\'' -- WhiteSpaceChar
   val FileChar = CharPredicate.Alpha ++ '/' ++ '.' ++ '-' ++ '_'
+  val AlphaOrStar = CharPredicate.Alpha ++ '*'
 
-  implicit def VS( c: Char ): Rule0 = rule { ch( c ) ~ zeroOrMore( WhiteSpaceChar ) }
-  implicit def VS( s: String ): Rule0 = rule { str( s ) ~ zeroOrMore( WhiteSpaceChar ) }
+  def CommentString: Rule0 = rule { ch('#') ~ zeroOrMore( CommentChar ) ~ LineEnd }
+  implicit def VS( c: Char ): Rule0 = rule { ch( c ) ~ zeroOrMore( WhiteSpaceChar | CommentString ) }
+  implicit def VS( s: String ): Rule0 = rule { str( s ) ~ zeroOrMore( WhiteSpaceChar | CommentString ) }
 
-  def VS = rule { zeroOrMore( WhiteSpaceChar ) }
-  def WS = rule { oneOrMore( WhiteSpaceChar ) }
+  def VS = rule { zeroOrMore( WhiteSpaceChar | CommentString ) }
+  def WS = rule { oneOrMore( WhiteSpaceChar | CommentString ) }
 
+  def CommaIfSameLine = rule { ( ',' | VS ) }
+  
   def InputLine = rule { VS ~ oneOrMore( Expression ~ VS ) ~ EOI }
 
   /**
@@ -83,50 +90,70 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
   def ClassifierKind = rule { VS( "c:" ) ~> ( () => ScopeKind.CLASSIFIER ) }
   def scopeKind: Rule1[ScopeKind] = rule { StereotypeKind | MetaclassKind | ClassifierKind }
 
+  def ReadOnlyAccess = rule { VS( "r/o" ) ~> ( () => ScopeAccess.READ_ONLY ) }
+  def ReadWriteAccess = rule { VS( "r/w" ) ~> ( () => ScopeAccess.READ_WRITE ) }
+  def scopeAccess: Rule1[ScopeAccess] = rule { ReadOnlyAccess | ReadWriteAccess }
+  
   def Filepath = rule { ch( '\'' ) ~ capture( CharPredicate.Alpha ~ zeroOrMore( ch( ' ' ) ~ FileChar | FileChar ) ) ~ '\'' ~> ( FName( _ ) ) }
 
   def HumanName = rule { ch( '\'' ) ~ capture( CharPredicate.Alpha ~ zeroOrMore( ch( ' ' ) ~ AnyChar | AnyChar ) ) ~ '\'' ~> ( HName( _ ) ) }
 
-  def SimpleName = rule { capture( CharPredicate.Alpha ~ zeroOrMore( CharPredicate.AlphaNum ) ) ~ WS ~> ( SName( _ ) ) }
-
+  def SimpleName = rule { capture( CharPredicate.Alpha ~ zeroOrMore( CharPredicate.AlphaNum ) ) ~ ( WS | !CharPredicate.AlphaNum )  ~> ( SName( _ ) ) }
+  
   def SimpleNameComma = rule { capture( CharPredicate.Alpha ~ zeroOrMore( CharPredicate.AlphaNum ) ) ~ VS ~ ',' ~> ( SName( _ ) ) }
 
-  def AlphaAlphaNum = rule { CharPredicate.Alpha ~ zeroOrMore( CharPredicate.AlphaNum ) }
+  def AlphaAlphaNum = rule { CharPredicate.Alpha ~ zeroOrMore( CharPredicate.AlphaNum ++ '_' ) }
 
   def JavaName = rule { capture( AlphaAlphaNum ~ zeroOrMore( ch( '.' ) ~ AlphaAlphaNum ) ) ~ VS ~> ( JName( _ ) ) }
 
-  def AlphaAnyChar = rule { CharPredicate.Alpha ~ zeroOrMore( ch( ' ' ) ~ AnyChar | AnyChar ) }
+  def AlphaAnyChar = rule { AlphaOrStar ~ zeroOrMore( ch( ' ' ) ~ AnyChar | AnyChar ) }
   
   def QualifiedName = rule { ch( '\'' ) ~ capture( AlphaAnyChar ~ zeroOrMore( str( "::" ) ~ AlphaAnyChar ) ) ~ '\'' ~> ( QName( _ ) ) }
  
   def QualifiedNameComma = rule { ch( '\'' ) ~ capture( AlphaAnyChar ~ zeroOrMore( str( "::" ) ~ AlphaAnyChar ) ) ~ '\'' ~ ',' ~> ( QName( _ ) ) }
   
-  def SimpleNames = rule { SimpleName ~ zeroOrMore( ',' ~ SimpleName ) ~> { ( name: SName, names: Seq[SName] ) => Seq( name ) ++ names } }
+  def JavaNames = rule { '{' ~ JavaName ~ zeroOrMore( ',' ~ JavaName ) ~ '}' ~> { ( name: JName, names: Seq[JName] ) => Seq( name ) ++ names } }
 
-  def QualifiedNames = rule { QualifiedName ~ zeroOrMore( ',' ~ QualifiedName ) ~> { ( name: QName, names: Seq[QName] ) => Seq( name ) ++ names } }
+  def HumanNames = rule { '{' ~ HumanName ~ zeroOrMore( ',' ~ HumanName ) ~ '}' ~> { ( name: HName, names: Seq[HName] ) => Seq( name ) ++ names } }
 
+  def SimpleNames = rule { '{' ~ SimpleName ~ zeroOrMore( ',' ~ SimpleName ) ~ '}' ~> { ( name: SName, names: Seq[SName] ) => Seq( name ) ++ names } }
+
+  def QualifiedNames = rule { '{' ~ QualifiedName ~ zeroOrMore( ',' ~ QualifiedName ) ~ '}' ~> { ( name: QName, names: Seq[QName] ) => Seq( name ) ++ names } }
+
+  def HNamePath = rule { '{' ~ HumanName ~ zeroOrMore( '>' ~ HumanName ) ~ '}' ~> { ( name: HName, names: Seq[HName] ) => Seq( name ) ++ names } }
+
+  def IntegerValueTypeDesignation = rule { VS( "Integer") ~> ( () => IntegerTypeDesignation() ) }
+  def RationalValueTypeDesignation = rule { VS( "Rational") ~> ( () => RationalTypeDesignation() ) }
+  def RealValueTypeDesignation = rule { VS( "Real") ~> ( () => RealTypeDesignation() ) }
+  def StringValueTypeDesignation = rule { VS( "String") ~> ( () => StringTypeDesignation() ) }
+  
+  def primitiveValueTypeDesignation = rule { IntegerValueTypeDesignation | RationalValueTypeDesignation | RealValueTypeDesignation | StringValueTypeDesignation }
+  
+  def CustomValueTypeDesignation = rule { str( "custom" ) ~ '[' ~ HumanName ~ ']' ~> CustomTypeDesignation }
+  
   /**
    * Prefixed Terminals
    * 
    * The prefix indicates the type of the terminal.
    */
   
-  def DiagramTypes = rule { optional( str( "diagramTypes" ) ~ ':' ~ '{' ~ SimpleNames ~ '}' ) ~> (_.getOrElse( Seq() )) }
-  def DiagramStereotypes = rule { optional( str( "diagramStereotypes" ) ~ ':' ~ '{' ~ QualifiedNames ~ '}' ) ~> (_.getOrElse( Seq() )) }
+  def DiagramTypes = rule { optional( str( "diagramTypes" ) ~ ':' ~ HumanNames ) ~> (_.getOrElse( Seq() )) }
+  def DiagramStereotypes = rule { optional( str( "diagramStereotypes" ) ~ ':' ~ QualifiedNames ) ~> (_.getOrElse( Seq() )) }
   
   def name_HumanName = rule { str( "name" ) ~ ':' ~ HumanName }
   
   def icon_Filepath = rule { optional( str( "icon" ) ~ ':' ~ Filepath ) }
   
   def project_JavaName = rule { str( "project" ) ~ ':' ~ JavaName }
-  def dependencies_JavaName = rule { optional( str( "dependencies" ) ~ '{' ~ oneOrMore( JavaName ) ~ '}' ) ~> (_.getOrElse( Seq() )) }
+  def dependencies_JavaName = rule { optional( str( "dependencies" ) ~ ':' ~ JavaNames ) ~> (_.getOrElse( Seq() )) }
   
   def plugin_HumanName = rule { str( "plugin.id" ) ~ ':' ~ HumanName }
+  def requiresPlugin_HumanName = rule { optional( str( "requires.plugin.id" ) ~ ':' ~ HumanName ) }
   
   def class_JavaName = rule { str( "class" ) ~ ':' ~ JavaName }
   def method_SimpleName = rule { str( "method" ) ~ ':' ~ SimpleName }
 
-  def metaclass_SimpleName = rule { str( "m" ) ~ ':' ~ SimpleName }
+  def metaclass_SimpleName = rule { '[' ~ str( "m" ) ~ ':' ~ SimpleName ~ ']' }
   def metaclass_SimpleNameComma = rule { str( "m" ) ~ ':' ~ SimpleNameComma }
   def profile_QualifiedNameComma = rule { str( "p" ) ~ ':' ~ QualifiedNameComma }
   def stereotype_QualifiedName = rule { str( "s" ) ~ ':' ~ QualifiedName }
@@ -138,62 +165,24 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
   def pathFrom = rule { str( "pathFrom" ) ~ ':' ~ elementTypeDesignation }
   def pathTo = rule { str( "pathTo" ) ~ ':' ~ elementTypeDesignation }
 
+  def toolbarMenuPath_HNames = rule { str( "toolbarMenuPath" ) ~ ':' ~ HNamePath }
+  
+  def access_ScopeAccess = rule { optional( str( "access" ) ~ ':' ~ scopeAccess ) ~> (_.getOrElse( ScopeAccess.READ_WRITE ) ) }
+  
   /**
    * Non-terminal rules.
    */
   
-  def projectContext = rule { project_JavaName ~ dependencies_JavaName ~> ProjectContext }
+  def projectContext = rule { project_JavaName ~ dependencies_JavaName ~ requiresPlugin_HumanName ~> ProjectContext }
   def pluginContext = rule { plugin_HumanName ~> PluginContext }
   def bundleContext = rule { projectContext | pluginContext }
 
   def dynamicScriptInfo = rule {
-    name_HumanName ~ icon_Filepath ~ bundleContext ~ class_JavaName ~ method_SimpleName
+    name_HumanName ~ icon_Filepath ~ bundleContext ~ access_ScopeAccess ~ class_JavaName ~ method_SimpleName
   }
 
-  def DelayedDerivedProperty = rule {
-    "DelayedDerivedProperty" ~ '(' ~ dynamicScriptInfo ~ ')' ~> {
-      ( name: HName, icon: Option[FName], context: BundleContext, className: JName, method: SName ) =>
-        ComputedDerivedProperty( name, icon, context, className, method, DELAYED_COMPUTATION_UNTIL_INVOKED )
-    }
-  }
-
-  def EarlyDerivedProperty = rule {
-    "EarlyDerivedProperty" ~ '(' ~ dynamicScriptInfo ~ ')' ~> {
-      ( name: HName, icon: Option[FName], context: BundleContext, className: JName, method: SName ) =>
-        ComputedDerivedProperty( name, icon, context, className, method, EAGER_COMPUTATION_AS_NEEDED )
-    }
-  }
-
-  def DelayedDerivedTable = rule {
-    "DelayedDerivedTable" ~ '(' ~ dynamicScriptInfo ~ ')' ~> {
-      ( name: HName, icon: Option[FName], context: BundleContext, className: JName, method: SName ) =>
-        ComputedDerivedTable( name, icon, context, className, method, DELAYED_COMPUTATION_UNTIL_INVOKED )
-    }
-  }
-
-  def EarlyDerivedTable = rule {
-    "EarlyDerivedTable" ~ '(' ~ dynamicScriptInfo ~ ')' ~> {
-      ( name: HName, icon: Option[FName], context: BundleContext, className: JName, method: SName ) =>
-        ComputedDerivedTable( name, icon, context, className, method, EAGER_COMPUTATION_AS_NEEDED )
-    }
-  }
-
-  def DerivedFeature = rule { DelayedDerivedProperty | EarlyDerivedProperty | DelayedDerivedTable | EarlyDerivedTable }
-
-  def BrowserMenuAction = rule {
-    "BrowserContextMenuAction" ~ '(' ~ dynamicScriptInfo ~ ')' ~> BrowserContextMenuAction
-  }
-  
-  def dynamicContextDiagramScriptInfo = rule {
-    name_HumanName ~ icon_Filepath ~ DiagramTypes ~ DiagramStereotypes ~ bundleContext ~ class_JavaName ~ method_SimpleName ~> DynamicContextDiagramActionScriptInfo
-  }
-
-  def DiagramMenuAction = rule {
-    "DiagramContextMenuAction" ~ '(' ~ dynamicContextDiagramScriptInfo ~ ')' ~> DiagramContextMenuAction
-  }
-  
   def metaclassDesignation = rule {
-    '[' ~ metaclass_SimpleName ~ ']' ~> MetaclassDesignation
+    metaclass_SimpleName ~> MetaclassDesignation
   }
 
   def stereotypedMetaclassesignation = rule {
@@ -210,6 +199,93 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
 
   def elementTypeDesignation: Rule1[ElementKindDesignation] = rule { metaclassDesignation | stereotypedMetaclassesignation | classifiedInstanceDesignation | stereotypedClassifiedInstanceDesignation }
 
+  def valueTypeDesignation = rule { elementTypeDesignation | primitiveValueTypeDesignation | CustomValueTypeDesignation }
+  
+  def derivedFeatureValueType = rule { '{' ~ str( "key" ) ~ ':' ~ SimpleName ~ CommaIfSameLine ~ str( "typeName" ) ~ ':' ~ HumanName ~ CommaIfSameLine ~ str( "typeInfo" ) ~ ':' ~ valueTypeDesignation ~ '}' ~> DerivedFeatureValueType }
+  
+  def derivedFeatureValueTypes = rule { '{' ~ derivedFeatureValueType ~ zeroOrMore( CommaIfSameLine ~ derivedFeatureValueType ) ~ '}' ~> { ( vt: DerivedFeatureValueType, vts: Seq[DerivedFeatureValueType] ) => Seq( vt ) ++ vts } }
+   
+  def derivedProperty_valueType = rule { optional( str( "valueType" ) ~ ':' ~ derivedFeatureValueType ) }
+  def derivedTable_valueTypeColumns = rule { optional( str( "columnValueTypes" ) ~ ':' ~ derivedFeatureValueTypes ) }
+  
+  def DelayedDerivedWidget = rule {
+    "DelayedDerivedWidget" ~ '(' ~ dynamicScriptInfo ~ ')' ~> {
+      ( name: HName, icon: Option[FName], context: BundleContext, access: ScopeAccess, className: JName, method: SName ) =>
+        ComputedDerivedWidget( name, icon, context, access, className, method, DELAYED_COMPUTATION_UNTIL_INVOKED )
+    }
+  }
+
+  def EarlyDerivedWidget = rule {
+    "EarlyDerivedWidget" ~ '(' ~ dynamicScriptInfo ~ ')' ~> {
+      ( name: HName, icon: Option[FName], context: BundleContext, access: ScopeAccess, className: JName, method: SName ) =>
+        ComputedDerivedWidget( name, icon, context, access, className, method, EAGER_COMPUTATION_AS_NEEDED )
+    }
+  }
+  
+  def DelayedDerivedProperty = rule {
+    "DelayedDerivedProperty" ~ '(' ~ dynamicScriptInfo ~ derivedProperty_valueType ~ ')' ~> {
+      ( name: HName, icon: Option[FName], context: BundleContext, access: ScopeAccess, className: JName, method: SName, valueType: Option[DerivedFeatureValueType] ) =>
+        ComputedDerivedProperty( name, icon, context, access, className, method, DELAYED_COMPUTATION_UNTIL_INVOKED, valueType )
+    }
+  }
+
+  def EarlyDerivedProperty = rule {
+    "EarlyDerivedProperty" ~ '(' ~ dynamicScriptInfo ~ derivedProperty_valueType ~ ')' ~> {
+      ( name: HName, icon: Option[FName], context: BundleContext, access: ScopeAccess, className: JName, method: SName, valueType: Option[DerivedFeatureValueType] ) =>
+        ComputedDerivedProperty( name, icon, context, access, className, method, EAGER_COMPUTATION_AS_NEEDED, valueType )
+    }
+  }
+
+  def DelayedDerivedTable = rule {
+    "DelayedDerivedTable" ~ '(' ~ dynamicScriptInfo ~ derivedTable_valueTypeColumns ~ ')' ~> {
+      ( name: HName, icon: Option[FName], context: BundleContext, access: ScopeAccess, className: JName, method: SName, valueTypes: Option[Seq[DerivedFeatureValueType]] ) =>
+        ComputedDerivedTable( name, icon, context, access, className, method, DELAYED_COMPUTATION_UNTIL_INVOKED, valueTypes )
+    }
+  }
+
+  def EarlyDerivedTable = rule {
+    "EarlyDerivedTable" ~ '(' ~ dynamicScriptInfo ~ derivedTable_valueTypeColumns ~ ')' ~> {
+      ( name: HName, icon: Option[FName], context: BundleContext, access: ScopeAccess, className: JName, method: SName, valueTypes: Option[Seq[DerivedFeatureValueType]] ) =>
+        ComputedDerivedTable( name, icon, context, access, className, method, EAGER_COMPUTATION_AS_NEEDED, valueTypes )
+    }
+  }
+
+  def DelayedDerivedTree = rule {
+    "DelayedDerivedTree" ~ '(' ~ dynamicScriptInfo ~ derivedTable_valueTypeColumns ~ ')' ~> {
+      ( name: HName, icon: Option[FName], context: BundleContext, access: ScopeAccess, className: JName, method: SName, valueTypes: Option[Seq[DerivedFeatureValueType]] ) =>
+        ComputedDerivedTree( name, icon, context, access, className, method, DELAYED_COMPUTATION_UNTIL_INVOKED, valueTypes )
+    }
+  }
+
+  def EarlyDerivedTree = rule {
+    "EarlyDerivedTree" ~ '(' ~ dynamicScriptInfo ~ derivedTable_valueTypeColumns ~ ')' ~> {
+      ( name: HName, icon: Option[FName], context: BundleContext, access: ScopeAccess, className: JName, method: SName, valueTypes: Option[Seq[DerivedFeatureValueType]] ) =>
+        ComputedDerivedTree( name, icon, context, access, className, method, EAGER_COMPUTATION_AS_NEEDED, valueTypes )
+    }
+  }
+  
+  def DerivedFeature = rule { DelayedDerivedWidget | EarlyDerivedWidget | DelayedDerivedProperty | EarlyDerivedProperty | DelayedDerivedTable | EarlyDerivedTable | DelayedDerivedTree | EarlyDerivedTree }
+
+  def toolbarMenuAction = rule {
+    toolbarMenuPath_HNames ~ name_HumanName ~ icon_Filepath ~ bundleContext ~ access_ScopeAccess ~ class_JavaName ~ method_SimpleName
+  }
+  
+  def ToolbarMenuAction = rule { 
+    "MainToolbarMenuAction"  ~ '(' ~ toolbarMenuAction ~ ')' ~> MainToolbarMenuAction
+  }
+  
+  def BrowserMenuAction = rule {
+    "BrowserContextMenuAction" ~ '(' ~ dynamicScriptInfo ~ ')' ~> BrowserContextMenuAction
+  }
+  
+  def dynamicContextDiagramScriptInfo = rule {
+    name_HumanName ~ icon_Filepath ~ DiagramTypes ~ DiagramStereotypes ~ bundleContext ~ access_ScopeAccess ~ class_JavaName ~ method_SimpleName ~> DynamicContextDiagramActionScriptInfo
+  }
+
+  def DiagramMenuAction = rule {
+    "DiagramContextMenuAction" ~ '(' ~ dynamicContextDiagramScriptInfo ~ ')' ~> DiagramContextMenuAction
+  }
+  
   def ToplevelShapeCreator = rule {
     "ToplevelElementShape" ~ '(' ~ dynamicContextDiagramScriptInfo ~ elementShape ~ ')' ~> ToplevelShapeInstanceCreator
   }
@@ -222,7 +298,8 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
 
   def scripts = rule { "scripts" ~ '{' ~ zeroOrMore( DynamicActionScripts ) ~ '}' }
   def features = rule { "features" ~ '{' ~ zeroOrMore( DerivedFeature ) ~ '}' }
-
+  def menuScripts = rule { "scripts" ~ '{' ~ zeroOrMore( ToolbarMenuAction ) ~ '}' }
+  
   def DynamicScripts: Rule1[DynamicScriptsForInstancesOfKind] = rule {
     "dynamicScripts" ~ '(' ~ str( "name" ) ~ '=' ~ HumanName ~ elementTypeDesignation ~ scripts ~ ')' ~> DynamicScriptsForInstancesOfKind
   }
@@ -231,7 +308,11 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
     "characterization" ~ '(' ~ str( "name" ) ~ '=' ~ HumanName ~ elementTypeDesignation ~ features ~ ')' ~> ComputedCharacterization
   }
 
-  def Expression: Rule1[DynamicScript] = rule { DynamicScripts | DynamicCharacterization }
+  def ToolbarMenuScripts: Rule1[DynamicScriptsForMainToolbarMenus] = rule {
+    "toolbarMenuScripts" ~ '(' ~ str( "name" ) ~ '=' ~ HumanName ~ menuScripts ~ ')' ~> DynamicScriptsForMainToolbarMenus
+  }
+  
+  def Expression: Rule1[DynamicScript] = rule { DynamicScripts | DynamicCharacterization | ToolbarMenuScripts }
 }
 
 /**
