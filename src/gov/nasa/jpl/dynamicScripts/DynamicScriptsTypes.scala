@@ -309,6 +309,7 @@ object DynamicScriptsTypes {
   }
 
   sealed abstract class ElementKindDesignation extends ValueTypeDesignation {
+    val metaclass: SName
     def prettyPrint( indentation: String ): String
     def compareTo( other: ElementKindDesignation ): Int
   }
