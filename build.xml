@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<project xmlns:qvto="http://www.eclipse.org/qvt/1.0.0/Operational" name="gov.nasa.jpl.dynamicScripts" basedir=".">
+<project name="dynamic-scripts-generic-dsl" basedir=".">
 
 	<property name="memorySize" value="-Xmx3076M" />
 	<property name="maxPermGenSize" value="-XX:MaxPermSize=1024M" />
@@ -26,87 +26,24 @@
 		<fail />
 	</target>
 
-	<target name="all.ok" if="all.precondition.scala" depends="build,build.ok,zip,install,bundle">
+	<target name="all.ok" if="all.precondition.scala" depends="publish">
 		<save.script.properties />
 	</target>
 
-	<target name="zip">
-		<zip destfile="artifacts/${artifact.zip}">
-			<zipfileset dir="root" dirmode="755">
-				<exclude name="**/*.sh" />
-				<include name="**/*" />
-			</zipfileset>
-		</zip>
-
-		<zip destfile="artifacts/${artifact.zip}" update="true">
-			<zipfileset dir="root" dirmode="755" filemode="555">
-				<include name="**/*.sh" />
-			</zipfileset>
-		</zip>
-	</target>
-
-	<target name="build.ok">
-
-		<delete failonerror="false" dir="root" />
-		<mkdir dir="root" />
-		<mkdir dir="root/lib" />
-		<mkdir dir="root/lib/JPL" />
-
-		<copy todir="root/lib/JPL" verbose="true">
-			<fileset dir="${scripts.dir}/lib">
-				<include name="*.jar" />
-			</fileset>
-		</copy>
-
-		<mkdir dir="root/lib.srcs" />
-		<mkdir dir="root/lib.srcs/JPL" />
-
-		<copy todir="root/lib.srcs/JPL" verbose="true">
-			<fileset dir="${scripts.dir}/lib.srcs">
-				<include name="*.jar" />
-			</fileset>
-		</copy>
-
-		<path id="classpath.additions.ref">
-			<fileset dir="root">
-				<include name="lib/JPL/*.jar" />
-			</fileset>
-		</path>
-		
-		<property name="root.path" location="root"/>
-		<pathconvert property="additions.classpath" refid="classpath.additions.ref" pathsep="\:">
-			<map from="${root.path}/" to="" />
-		</pathconvert>
-		<echoproperties prefix="additions." />
-
-		<mkdir dir="root/bin" />
-
-		<copy todir="root/bin">
-			<fileset dir="${md.install.dir}/bin">
-				<include name="magicdraw*.properties" />
-			</fileset>
-		</copy>
-
-		<replace>
-			<fileset dir="root/bin" includes="*.properties" />
-			<replacefilter token="lib/patch.jar" value="${additions.classpath}\:lib/patch.jar" />
-		</replace>
-
-	</target>
-
-	<target name="install">
-		<md.scripts.install.zip 
-			scripts.dir="${project.dir}" 
-			scripts.archive="${scripts.archive}" 
-			scripts.version="${scripts.version}" 
-			install.dir="${md.install.dir}" />
-	</target>
-
-	<target name="bundle">
-		<md.zip.all 
-			bundle.dest.dir="${scripts.dir}/artifacts" 
-			bundle.name="${bundle.name}" 
-			bundle.source.dir="${md.install.dir}" />
+	<target name="publish">
+		<echoproperties prefix="env"/>
+		<exec executable="${env.JENKINS_HOME}/tools/SBT/sbt"
+			  failifexecutionfails="true"
+			  failonerror="true"
+			  logerror="true"
+			  dir=".">
+			<arg value="-java-home"/>
+			<arg value="${env.JAVA7_HOME}"/>
+			<arg value="-DJPL_MBEE_LOCAL_REPOSITORY=${env.JPL_MBEE_LOCAL_REPOSITORY}"/>
+			<arg value="-batch"/>
+			<arg value="-no-colors"/>
+			<arg value="publish"/>
+		</exec>
 	</target>
 
 </project>
