@@ -21,12 +21,12 @@
 
 	<target name="all" depends="all.error,all.ok" />
 
-	<target name="all.error" unless="all.precondition.scala">
-		<echo message="Check the environment variables tested in the target 'all.precondition.scala'" />
+	<target name="all.error" unless="all.precondition.md">
+		<echo message="Check the environment variables tested in the target 'all.precondition.md'" />
 		<fail />
 	</target>
 
-	<target name="all.ok" if="all.precondition.scala" depends="publish">
+	<target name="all.ok" if="all.precondition.md" depends="publish">
 		<save.prev.properties />
 	</target>
 
