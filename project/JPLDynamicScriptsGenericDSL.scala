@@ -12,7 +12,7 @@ import net.virtualvoid.sbt.graph.Plugin.graphSettings
 /**
  * sbt -DJPL_MBEE_LOCAL_REPOSITORY=<directory path for a local Ivy2 repository (will be created if necessary)> extractArchives
  */
-object DynamicScriptsGenericDSL extends Build {
+object JPLDynamicScriptsGenericDSL extends Build {
   
   object Versions {
     val scala = "2.11.6"
@@ -48,7 +48,7 @@ object DynamicScriptsGenericDSL extends Build {
     publishArtifact in(Compile, packageSrc) := true
   )
 
-  lazy val root = Project("dynamic-scripts-generic-dsl", file( "." )).
+  lazy val root = Project("jpl-dynamic-scripts-generic-dsl", file( "." )).
     settings(versionWithGit: _*).
     settings(showCurrentGitBranch: _*).
     settings(jplSettings: _*).
