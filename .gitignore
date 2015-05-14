@@ -1,6 +1,8 @@
 .cache
 bin
-lib/gov.nasa.jpl.dynamicScriptsDSL.jar
+project/target
+project/project
+.idea
 /bin.tests/
 root
 /target/
