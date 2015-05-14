@@ -27,7 +27,7 @@
 	</target>
 
 	<target name="all.ok" if="all.precondition.scala" depends="publish">
-		<save.script.properties />
+		<save.prev.properties />
 	</target>
 
 	<target name="publish">
