@@ -19,7 +19,7 @@ object JPLDynamicScriptsGenericDSL extends Build {
     val jpl_mbee_release_prefix="1800.02-"
 
     // JPL MBEE Common Scala Libraries
-    val jpl_mbee_common_scala_libraries_revision="9278112bc057352d3a979258e0f2288970e038f7"
+    val jpl_mbee_common_scala_libraries_revision="60d5d55571aeff7e4fb884ecd8d4e02b0da27ce6"
 
     val jpl_mbee_core = jpl_mbee_release_prefix+jpl_mbee_common_scala_libraries_revision
     val jpl_mbee_other = jpl_mbee_release_prefix+jpl_mbee_common_scala_libraries_revision
