@@ -1,10 +1,11 @@
 .cache
+.classpath
+.idea
+.project
 bin
+bin.tests
 project/target
 project/project
-.idea
-/bin.tests/
 root
-/target/
-
 sbt.staging
+target
