@@ -1,6 +1,11 @@
 .cache
+.classpath
+.idea
+.project
 bin
-lib/gov.nasa.jpl.dynamicScriptsDSL.jar
-/bin.tests/
+bin.tests
+project/target
+project/project
 root
-/target/
+sbt.staging
+target
