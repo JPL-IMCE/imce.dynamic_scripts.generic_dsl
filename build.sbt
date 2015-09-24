@@ -9,6 +9,7 @@ lazy val core = Project("jpl-dynamic-scripts-generic-dsl", file(".")).
   settings (
     MBEEKeys.mbeeLicenseYearOrRange := "2014-2015",
     MBEEKeys.mbeeOrganizationInfo := MBEEPlugin.MBEEOrganizations.imce,
+    MBEEKeys.targetJDK := MBEEKeys.jdk17.value,
     // include all test artifacts
     publishArtifact in Test := true,
     scalaSource in Compile := baseDirectory.value / "src",
@@ -20,7 +21,11 @@ lazy val core = Project("jpl-dynamic-scripts-generic-dsl", file(".")).
     resolvers += new MavenRepository("bintray-pchiusano-scalaz-stream", "http://dl.bintray.com/pchiusano/maven"),
 
     libraryDependencies ++= Seq (
-      MBEEPlugin.MBEEOrganizations.imce.mbeeZipArtifactVersion("jpl-mbee-common-scala-libraries_core", MBEEKeys.mbeeReleaseVersionPrefix.value, Versions.jpl_mbee_common_scala_libraries_revision),
-      MBEEPlugin.MBEEOrganizations.imce.mbeeZipArtifactVersion("jpl-mbee-common-scala-libraries_other", MBEEKeys.mbeeReleaseVersionPrefix.value, Versions.jpl_mbee_common_scala_libraries_revision)
+      MBEEPlugin.MBEEOrganizations.imce.mbeeZipArtifactVersion(
+        "jpl-mbee-common-scala-libraries_core",
+        MBEEKeys.mbeeReleaseVersionPrefix.value, Versions.jpl_mbee_common_scala_libraries_revision),
+      MBEEPlugin.MBEEOrganizations.imce.mbeeZipArtifactVersion(
+        "jpl-mbee-common-scala-libraries_other",
+        MBEEKeys.mbeeReleaseVersionPrefix.value, Versions.jpl_mbee_common_scala_libraries_revision)
     )
   )
