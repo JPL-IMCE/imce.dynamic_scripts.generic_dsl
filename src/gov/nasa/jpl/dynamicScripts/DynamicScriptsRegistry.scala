@@ -2,7 +2,7 @@
  *
  * License Terms
  *
- * Copyright (c) 2014-2015, California Institute of Technology ("Caltech").
+ * Copyright (c) 2014-2016, California Institute of Technology ("Caltech").
  * U.S. Government sponsorship acknowledged.
  *
  * All rights reserved.
@@ -39,14 +39,21 @@
 package gov.nasa.jpl.dynamicScripts
 
 import java.io.File
-import scala.io.Source
-import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes._
-import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes.BinaryDerivationRefresh._
-import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes.ScopeKind._
-import scala.util.Success
-import scala.util.Failure
-import org.parboiled2.ParseError
 import java.nio.file.Paths
+
+import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes._
+//import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes.BinaryDerivationRefresh._
+//import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes.ScopeKind._
+
+import org.parboiled2.ParseError
+
+import scala.collection.immutable._
+import scala.collection.mutable.StringBuilder
+import scala.io.Source
+import scala.util.{Failure, Success}
+import scala.{Either, Left, Right, StringContext}
+import scala.Predef.String
+
 
 /**
  * @author Nicolas.F.Rouquette@jpl.nasa.gov
@@ -175,7 +182,7 @@ object DynamicScriptsRegistry {
           }
 
         } catch {
-          case t: Throwable =>
+          case t: java.lang.Throwable =>
             ( r, errors :+ t.getClass.getName+" for dynamic script filepath: '"+filepath+"': "+t.getMessage )
         }
     }

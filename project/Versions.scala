@@ -1,5 +1,9 @@
 object Versions {
 
-  // JPL MBEE Common Scala Libraries
-  val jpl_mbee_common_scala_libraries_revision="1bd3b24dd84bc505e4acf98ca06530419e7efe13"
+  // this project
+  val version = "1.0"
+
+  // https://github.jpl.nasa.gov/imce/jpl-mbee-common-scala-libraries
+  val jpl_mbee_common_scala_libraries="1.11"
+
 }

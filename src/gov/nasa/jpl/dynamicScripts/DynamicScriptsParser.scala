@@ -2,7 +2,7 @@
  *
  * License Terms
  *
- * Copyright (c) 2014-2015, California Institute of Technology ("Caltech").
+ * Copyright (c) 2014-2016, California Institute of Technology ("Caltech").
  * U.S. Government sponsorship acknowledged.
  *
  * All rights reserved.
@@ -39,6 +39,9 @@
 package gov.nasa.jpl.dynamicScripts
 
 import scala.language.implicitConversions
+import scala.collection.immutable._
+import scala.{Any, Boolean, Char, None, Option, Some, StringContext}
+import scala.Predef.String
 import scala.util.Try
 
 import org.parboiled2._
@@ -93,13 +96,24 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
   def ReadWriteAccess = rule { VS( "r/w" ) ~> ( () => ScopeAccess.READ_WRITE ) }
   def scopeAccess: Rule1[ScopeAccess] = rule { ReadOnlyAccess | ReadWriteAccess }
   
-  def Filepath = rule { ch( '\'' ) ~ capture( CharPredicate.Alpha ~ zeroOrMore( ch( ' ' ) ~ FileChar | FileChar ) ) ~ '\'' ~> ( FName( _ ) ) }
+  def Filepath = rule {
+    ch( '\'' ) ~ capture( CharPredicate.Alpha ~ zeroOrMore( ch( ' ' ) ~ FileChar | FileChar ) ) ~ '\'' ~>
+      ( FName( _ ) )
+  }
 
-  def HumanName = rule { ch( '\'' ) ~ capture( CharPredicate.Alpha ~ zeroOrMore( ch( ' ' ) ~ AnyChar | AnyChar ) ) ~ '\'' ~> ( HName( _ ) ) }
+  def HumanName = rule {
+    ch( '\'' ) ~ capture( CharPredicate.Alpha ~ zeroOrMore( ch( ' ' ) ~ AnyChar | AnyChar ) ) ~ '\'' ~>
+      ( HName( _ ) )
+  }
 
-  def SimpleName = rule { capture( CharPredicate.Alpha ~ zeroOrMore( CharPredicate.AlphaNum ) ) ~ ( WS | !CharPredicate.AlphaNum )  ~> ( SName( _ ) ) }
+  def SimpleName = rule {
+    capture( CharPredicate.Alpha ~ zeroOrMore( CharPredicate.AlphaNum ) ) ~ ( WS | !CharPredicate.AlphaNum ) ~>
+      ( SName( _ ) ) }
   
-  def SimpleNameComma = rule { capture( CharPredicate.Alpha ~ zeroOrMore( CharPredicate.AlphaNum ) ) ~ VS ~ ',' ~> ( SName( _ ) ) }
+  def SimpleNameComma = rule {
+    capture( CharPredicate.Alpha ~ zeroOrMore( CharPredicate.AlphaNum ) ) ~ VS ~ ',' ~>
+      ( SName( _ ) )
+  }
 
   def AlphaAlphaNum = rule { CharPredicate.Alpha ~ zeroOrMore( CharPredicate.AlphaNum ++ '_' ) }
 

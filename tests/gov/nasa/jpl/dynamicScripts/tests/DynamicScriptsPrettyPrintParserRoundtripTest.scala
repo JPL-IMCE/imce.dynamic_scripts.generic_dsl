@@ -2,7 +2,7 @@
  *
  * License Terms
  *
- * Copyright (c) 2014-2015, California Institute of Technology ("Caltech").
+ * Copyright (c) 2014-2016, California Institute of Technology ("Caltech").
  * U.S. Government sponsorship acknowledged.
  *
  * All rights reserved.
@@ -41,10 +41,7 @@ package gov.nasa.jpl.dynamicScripts.tests
 import org.scalatest._
 import org.scalatest.Matchers._
 import org.scalatest.prop.PropertyChecks
-import org.scalacheck._
-import org.scalacheck.Prop._
-import scala.util.Success
-import scala.util.Failure
+import scala.util.{Failure, Success}
 import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes._
 import gov.nasa.jpl.dynamicScripts._
 
