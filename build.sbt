@@ -25,8 +25,12 @@ lazy val core = Project("jpl-dynamic-scripts-generic-dsl", file("."))
     publishArtifact in Test := true,
     scalaSource in Compile := baseDirectory.value / "src",
     scalaSource in Test := baseDirectory.value / "tests",
+
     classDirectory in Compile := baseDirectory.value / "bin",
+    cleanFiles += (classDirectory in Compile).value,
+
     classDirectory in Test := baseDirectory.value / "bin.tests",
+    cleanFiles += (classDirectory in Test).value,
 
     libraryDependencies ++= Seq (
       "gov.nasa.jpl.imce.thirdParty" %% "all-scala-libraries" % Versions.jpl_mbee_common_scala_libraries artifacts 
