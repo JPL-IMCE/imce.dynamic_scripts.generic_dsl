@@ -12,13 +12,15 @@ developers := List(
     email="nicolas.f.rouquette@jpl.nasa.gov",
     url=url("https://gateway.jpl.nasa.gov/personal/rouquett/default.aspx")))
 
-lazy val core = Project("jpl-dynamic-scripts-generic-dsl", file("."))
+lazy val core = Project("imce-dynamic_scripts-generic_dsl", file("."))
   .enablePlugins(IMCEGitPlugin)
   .enablePlugins(IMCEReleasePlugin)
   .settings(IMCEReleasePlugin.packageReleaseProcessSettings: _*)
   .settings(
     IMCEKeys.licenseYearOrRange := "2014-2016",
     IMCEKeys.organizationInfo := IMCEPlugin.Organizations.cae,
+    organization := "gov.nasa.jpl.imce.dynamic_scripts",
+
     IMCEKeys.targetJDK := IMCEKeys.jdk18.value,
     git.baseVersion := Versions.version,
     // include all test artifacts
@@ -33,7 +35,7 @@ lazy val core = Project("jpl-dynamic-scripts-generic-dsl", file("."))
     cleanFiles += (classDirectory in Test).value,
 
     libraryDependencies ++= Seq (
-      "gov.nasa.jpl.imce.thirdParty" %% "other-scala-libraries" % Versions.jpl_mbee_common_scala_libraries artifacts
+      "gov.nasa.jpl.imce.thirdParty" %% "other-scala-libraries" % Versions.other_scala_libraries artifacts
       Artifact("other-scala-libraries", "zip", "zip", Some("resource"), Seq(), None, Map())
     )
   )
