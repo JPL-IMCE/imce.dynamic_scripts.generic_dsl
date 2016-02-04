@@ -35,7 +35,7 @@ lazy val core = Project("imce-dynamic_scripts-generic_dsl", file("."))
     cleanFiles += (classDirectory in Test).value,
 
     libraryDependencies ++= Seq (
-      "gov.nasa.jpl.imce.thirdParty" %% "other-scala-libraries" % Versions.other_scala_libraries artifacts
+      "gov.nasa.jpl.imce.thirdParty" %% "other-scala-libraries" % Versions.other_scala_libraries % "compile" artifacts
       Artifact("other-scala-libraries", "zip", "zip", Some("resource"), Seq(), None, Map())
     )
   )
