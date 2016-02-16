@@ -15,11 +15,22 @@ developers := List(
 lazy val core = Project("imce-dynamic_scripts-generic_dsl", file("."))
   .enablePlugins(IMCEGitPlugin)
   .enablePlugins(IMCEReleasePlugin)
-  .settings(IMCEReleasePlugin.packageReleaseProcessSettings: _*)
+  .settings(IMCEPlugin.strictScalacFatalWarningsSettings)
+  .settings(IMCEReleasePlugin.packageReleaseProcessSettings)
   .settings(
     IMCEKeys.licenseYearOrRange := "2014-2016",
     IMCEKeys.organizationInfo := IMCEPlugin.Organizations.cae,
     organization := "gov.nasa.jpl.imce.dynamic_scripts",
+
+    buildInfoPackage := "gov.nasa.jpl.imce.dynamic_scripts.generic_dsl",
+    buildInfoKeys ++= Seq[BuildInfoKey](BuildInfoKey.action("buildDateUTC") { buildUTCDate.value }),
+
+    projectID := {
+      val previous = projectID.value
+      previous.extra(
+        "build.date.utc" -> buildUTCDate.value,
+        "artifact.kind" -> "generic.library")
+    },
 
     IMCEKeys.targetJDK := IMCEKeys.jdk18.value,
     git.baseVersion := Versions.version,
@@ -34,9 +45,11 @@ lazy val core = Project("imce-dynamic_scripts-generic_dsl", file("."))
     classDirectory in Test := baseDirectory.value / "bin.tests",
     cleanFiles += (classDirectory in Test).value,
 
+    extractArchives := {},
+
     libraryDependencies ++= Seq (
       "gov.nasa.jpl.imce.thirdParty" %% "other-scala-libraries" % Versions_other_scala_libraries.version %
-        "compile" artifacts Artifact("other-scala-libraries", "zip", "zip", Some("resource"), Seq(), None, Map())
+        "compile" artifacts
+        Artifact("other-scala-libraries", "zip", "zip", Some("resource"), Seq(), None, Map())
     )
   )
-  .settings(IMCEPlugin.strictScalacFatalWarningsSettings)
