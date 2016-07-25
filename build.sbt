@@ -5,6 +5,8 @@ import gov.nasa.jpl.imce.sbt._
 
 useGpg := true
 
+updateOptions := updateOptions.value.withCachedResolution(true)
+
 developers := List(
   Developer(
     id="rouquett",
