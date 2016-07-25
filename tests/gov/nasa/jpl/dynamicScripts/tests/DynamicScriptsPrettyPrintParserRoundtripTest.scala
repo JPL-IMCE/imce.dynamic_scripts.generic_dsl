@@ -41,7 +41,6 @@ package gov.nasa.jpl.dynamicScripts.tests
 import org.scalatest._
 import org.scalatest.Matchers._
 import org.scalatest.prop.PropertyChecks
-import scala.util.{Failure, Success}
 import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes._
 import gov.nasa.jpl.dynamicScripts._
 
