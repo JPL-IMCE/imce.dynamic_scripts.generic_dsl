@@ -40,7 +40,7 @@ package gov.nasa.jpl.dynamicScripts
 
 import scala.language.implicitConversions
 import scala.collection.immutable._
-import scala.{Any, Boolean, Char, None, Option, Some, StringContext}
+import scala.{Any, Boolean, Char, None, Option, Some}
 import scala.Predef.String
 import scala.util.Try
 
