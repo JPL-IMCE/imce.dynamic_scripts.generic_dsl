@@ -2,7 +2,7 @@
  *
  * License Terms
  *
- * Copyright (c) 2014-2015, California Institute of Technology ("Caltech").
+ * Copyright (c) 2014-2016, California Institute of Technology ("Caltech").
  * U.S. Government sponsorship acknowledged.
  *
  * All rights reserved.
@@ -39,35 +39,46 @@
 package gov.nasa.jpl.dynamicScripts
 
 import java.io.File
-import scala.io.Source
-import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes._
-import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes.BinaryDerivationRefresh._
-import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes.ScopeKind._
-import scala.util.Success
-import scala.util.Failure
-import org.parboiled2.ParseError
 import java.nio.file.Paths
+
+import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes._
+//import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes.BinaryDerivationRefresh._
+//import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes.ScopeKind._
+
+import org.parboiled2.ParseError
+
+import scala.collection.immutable._
+import scala.collection.mutable.StringBuilder
+import scala.io.Source
+import scala.util.{Failure, Success}
+import scala.{Either, Left, Right, StringContext}
+import scala.Predef.String
+
 
 /**
  * @author Nicolas.F.Rouquette@jpl.nasa.gov
  */
 case class DynamicScriptsRegistry(
-  metaclassCharacterizations: Map[String, scala.collection.immutable.SortedSet[ComputedCharacterization]],
-  stereotypedMetaclassCharacterizations: Map[String, scala.collection.immutable.SortedSet[ComputedCharacterization]],
-  classifierCharacterizations: Map[String, scala.collection.immutable.SortedSet[ComputedCharacterization]],
-  stereotypedClassifierCharacterizations: Map[String, scala.collection.immutable.SortedSet[ComputedCharacterization]],
+  metaclassCharacterizations: Map[String, SortedSet[ComputedCharacterization]],
+  stereotypedMetaclassCharacterizations: Map[String, SortedSet[ComputedCharacterization]],
+  classifierCharacterizations: Map[String, SortedSet[ComputedCharacterization]],
+  stereotypedClassifierCharacterizations: Map[String, SortedSet[ComputedCharacterization]],
 
-  metaclassActions: Map[String, scala.collection.immutable.SortedSet[DynamicScriptsForInstancesOfKind]],
-  stereotypedMetaclassActions: Map[String, scala.collection.immutable.SortedSet[DynamicScriptsForInstancesOfKind]],
-  classifierActions: Map[String, scala.collection.immutable.SortedSet[DynamicScriptsForInstancesOfKind]],
-  stereotypedClassifierActions: Map[String, scala.collection.immutable.SortedSet[DynamicScriptsForInstancesOfKind]],
+  metaclassActions: Map[String, SortedSet[DynamicScriptsForInstancesOfKind]],
+  stereotypedMetaclassActions: Map[String, SortedSet[DynamicScriptsForInstancesOfKind]],
+  classifierActions: Map[String, SortedSet[DynamicScriptsForInstancesOfKind]],
+  stereotypedClassifierActions: Map[String, SortedSet[DynamicScriptsForInstancesOfKind]],
 
-  toolbarMenuPathActions: Map[String, scala.collection.immutable.SortedSet[DynamicScriptsForMainToolbarMenus]] ) {
+  toolbarMenuPathActions: Map[String, SortedSet[DynamicScriptsForMainToolbarMenus]] ) {
 
-  override def toString(): String = {
+  override def toString: String = {
 
-    def mapToString[V <: DynamicScript]( map: Map[String, scala.collection.immutable.SortedSet[V]] ): String =
-      ( for ( ( k, cs ) <- map ) yield s"    '${k}' -> ${( for ( c <- cs ) yield c.prettyPrint( "      " ) ).mkString( "{\n", "\n", "\n    }\n" )}" ).mkString( "{\n", "\n", "  }" )
+    def mapToString[V <: DynamicScript]( map: Map[String, SortedSet[V]] ): String =
+      ( for {
+        (k, cs) <- map
+        values = (for (c <- cs) yield c.prettyPrint("      ")).mkString("{\n", "\n", "\n    }\n")
+      } yield s"    '$k' -> $values"
+        ).mkString( "{\n", "\n", "  }" )
 
     val buff = new StringBuilder()
     buff ++= "DynamicScriptsRegistry("
@@ -91,33 +102,44 @@ case class DynamicScriptsRegistry(
  */
 object DynamicScriptsRegistry {
 
-  type SMap[K, V] = Map[K, scala.collection.immutable.SortedSet[V]]
+  type SMap[K, V] = Map[K, SortedSet[V]]
 
   def updatedSMap[V](
     map: SMap[String, V], key: String, value: V,
-    default: => scala.collection.immutable.SortedSet[V],
+    default: => SortedSet[V],
     merge: ( ( V, V ) => V ) ): SMap[String, V] = {
-    val currentValues: scala.collection.immutable.SortedSet[V] = map.getOrElse( key, default )
-    val newValues: scala.collection.immutable.SortedSet[V] =
-      if ( currentValues.contains( value ) ) ( default /: currentValues ) { case ( ( s, v ) ) => s + merge( v, value ) }
-      else currentValues + value
+    val currentValues: SortedSet[V] = map.getOrElse( key, default )
+    val newValues: SortedSet[V] =
+      if ( currentValues.contains( value ) )
+        ( default /: currentValues ) { case ( ( s, v ) ) => s + merge( v, value ) }
+      else
+        currentValues + value
     map.updated( key, newValues )
   }
 
-  def emptyComputedCharacterizationSet() = scala.collection.immutable.TreeSet[ComputedCharacterization]()( ComputedCharacterizationOrdering() )
+  def emptyComputedCharacterizationSet() =
+    TreeSet[ComputedCharacterization]()( ComputedCharacterizationOrdering() )
 
-  def updatedSMap( map: SMap[String, ComputedCharacterization], k: String, c: ComputedCharacterization ): SMap[String, ComputedCharacterization] =
-    updatedSMap( map, k, c, emptyComputedCharacterizationSet, DynamicScriptsTypes.merge )
+  def updatedSMap
+  ( map: SMap[String, ComputedCharacterization], k: String, c: ComputedCharacterization )
+  : SMap[String, ComputedCharacterization] =
+    updatedSMap( map, k, c, emptyComputedCharacterizationSet(), DynamicScriptsTypes.merge )
 
-  def emptyDynamicActionScriptSet() = scala.collection.immutable.TreeSet[DynamicScriptsForInstancesOfKind]()( DynamicScriptsForInstancesOfKindOrdering() )
+  def emptyDynamicActionScriptSet() =
+    TreeSet[DynamicScriptsForInstancesOfKind]()( DynamicScriptsForInstancesOfKindOrdering() )
 
-  def updatedSMap( map: SMap[String, DynamicScriptsForInstancesOfKind], k: String, a: DynamicScriptsForInstancesOfKind ): SMap[String, DynamicScriptsForInstancesOfKind] =
-    updatedSMap( map, k, a, emptyDynamicActionScriptSet, DynamicScriptsTypes.merge )
+  def updatedSMap
+  ( map: SMap[String, DynamicScriptsForInstancesOfKind], k: String, a: DynamicScriptsForInstancesOfKind )
+  : SMap[String, DynamicScriptsForInstancesOfKind] =
+    updatedSMap( map, k, a, emptyDynamicActionScriptSet(), DynamicScriptsTypes.merge )
 
-  def emptyDynamicScriptsForMainToolbarMenusSet() = scala.collection.immutable.TreeSet[DynamicScriptsForMainToolbarMenus]()( DynamicScriptsForMainToolbarMenusOrdering() )
+  def emptyDynamicScriptsForMainToolbarMenusSet() =
+    TreeSet[DynamicScriptsForMainToolbarMenus]()( DynamicScriptsForMainToolbarMenusOrdering() )
 
-  def updatedSMap( map: SMap[String, DynamicScriptsForMainToolbarMenus], k: String, a: DynamicScriptsForMainToolbarMenus ): SMap[String, DynamicScriptsForMainToolbarMenus] =
-    updatedSMap( map, k, a, emptyDynamicScriptsForMainToolbarMenusSet, DynamicScriptsTypes.merge )
+  def updatedSMap
+  ( map: SMap[String, DynamicScriptsForMainToolbarMenus], k: String, a: DynamicScriptsForMainToolbarMenus )
+  : SMap[String, DynamicScriptsForMainToolbarMenus] =
+    updatedSMap( map, k, a, emptyDynamicScriptsForMainToolbarMenusSet(), DynamicScriptsTypes.merge )
 
   def init() = DynamicScriptsRegistry(
     metaclassCharacterizations = Map(),
@@ -132,50 +154,82 @@ object DynamicScriptsRegistry {
 
     toolbarMenuPathActions = Map() )
 
-  def merge( r: DynamicScriptsRegistry, dynamicScript: DynamicScript ): DynamicScriptsRegistry = dynamicScript match {
+  def merge
+  ( r: DynamicScriptsRegistry, dynamicScript: DynamicScript )
+  : DynamicScriptsRegistry = dynamicScript match {
 
-    case c: ComputedCharacterization => c.characterizesInstancesOf match {
-      case _: MetaclassDesignation                     => r.copy( metaclassCharacterizations = DynamicScriptsRegistry.updatedSMap( r.metaclassCharacterizations, c.name.hname, c ) )
-      case _: StereotypedMetaclassDesignation          => r.copy( stereotypedMetaclassCharacterizations = DynamicScriptsRegistry.updatedSMap( r.stereotypedMetaclassCharacterizations, c.name.hname, c ) )
-      case _: ClassifiedInstanceDesignation            => r.copy( classifierCharacterizations = DynamicScriptsRegistry.updatedSMap( r.classifierCharacterizations, c.name.hname, c ) )
-      case _: StereotypedClassifiedInstanceDesignation => r.copy( stereotypedClassifierCharacterizations = DynamicScriptsRegistry.updatedSMap( r.stereotypedClassifierCharacterizations, c.name.hname, c ) )
-    }
+    case c: ComputedCharacterization =>
+      c.characterizesInstancesOf match {
+        case _: MetaclassDesignation =>
+          r.copy(metaclassCharacterizations =
+            DynamicScriptsRegistry.updatedSMap(r.metaclassCharacterizations, c.name.hname, c))
 
-    case s: DynamicScriptsForInstancesOfKind => s.applicableTo match {
-      case _: MetaclassDesignation                     => r.copy( metaclassActions = DynamicScriptsRegistry.updatedSMap( r.metaclassActions, s.name.hname, s ) )
-      case _: StereotypedMetaclassDesignation          => r.copy( stereotypedMetaclassActions = DynamicScriptsRegistry.updatedSMap( r.stereotypedMetaclassActions, s.name.hname, s ) )
-      case _: ClassifiedInstanceDesignation            => r.copy( classifierActions = DynamicScriptsRegistry.updatedSMap( r.classifierActions, s.name.hname, s ) )
-      case _: StereotypedClassifiedInstanceDesignation => r.copy( stereotypedClassifierActions = DynamicScriptsRegistry.updatedSMap( r.stereotypedClassifierActions, s.name.hname, s ) )
-    }
+        case _: StereotypedMetaclassDesignation =>
+          r.copy(stereotypedMetaclassCharacterizations =
+            DynamicScriptsRegistry.updatedSMap(r.stereotypedMetaclassCharacterizations, c.name.hname, c))
 
-    case t: DynamicScriptsForMainToolbarMenus => r.copy( toolbarMenuPathActions = DynamicScriptsRegistry.updatedSMap( r.toolbarMenuPathActions, t.name.hname, t ) )
+        case _: ClassifiedInstanceDesignation =>
+          r.copy(classifierCharacterizations =
+            DynamicScriptsRegistry.updatedSMap(r.classifierCharacterizations, c.name.hname, c))
+
+        case _: StereotypedClassifiedInstanceDesignation =>
+          r.copy(stereotypedClassifierCharacterizations =
+            DynamicScriptsRegistry.updatedSMap(r.stereotypedClassifierCharacterizations, c.name.hname, c))
+      }
+
+    case s: DynamicScriptsForInstancesOfKind =>
+      s.applicableTo match {
+        case _: MetaclassDesignation =>
+          r.copy(metaclassActions =
+            DynamicScriptsRegistry.updatedSMap(r.metaclassActions, s.name.hname, s))
+
+        case _: StereotypedMetaclassDesignation =>
+          r.copy(stereotypedMetaclassActions =
+            DynamicScriptsRegistry.updatedSMap(r.stereotypedMetaclassActions, s.name.hname, s))
+
+        case _: ClassifiedInstanceDesignation =>
+          r.copy(classifierActions =
+            DynamicScriptsRegistry.updatedSMap(r.classifierActions, s.name.hname, s))
+
+        case _: StereotypedClassifiedInstanceDesignation =>
+          r.copy(stereotypedClassifierActions =
+            DynamicScriptsRegistry.updatedSMap(r.stereotypedClassifierActions, s.name.hname, s))
+      }
+
+    case t: DynamicScriptsForMainToolbarMenus =>
+      r.copy( toolbarMenuPathActions =
+        DynamicScriptsRegistry.updatedSMap( r.toolbarMenuPathActions, t.name.hname, t ) )
   }
 
   protected def parseDynamicScript( file: File ): Either[List[DynamicScript], String] =
-    if ( !( file.exists() && file.canRead() ) )
-      Right( s"Dynamic Script file '${file}' does not exist or is not readable" )
+    if ( !( file.exists() && file.canRead ) )
+      Right( s"Dynamic Script file '$file' does not exist or is not readable" )
     else
       DynamicScriptsParser.parse( Source.fromFile( file ).mkString ) match {
         case ( _, Success( scripts: Seq[DynamicScript] ) ) =>
           Left( scripts.toList )
         case ( parser, Failure( e: ParseError ) ) =>
-          Right( s"Dynamic Script file '${file}' has syntax errors\n${parser.formatError( e )}" )
+          Right( s"Dynamic Script file '$file' has syntax errors\n${parser.formatError( e )}" )
         case ( _, Failure( e ) ) =>
-          Right( s"Dynamic Script file '${file}' has unexpected parsing errors\n${e}" )
+          Right( s"Dynamic Script file '$file' has unexpected parsing errors\n$e" )
       }
 
-  def mergeDynamicScripts( r: DynamicScriptsRegistry, filepaths: List[String] ): ( DynamicScriptsRegistry, List[String] ) =
+  def mergeDynamicScripts
+  ( r: DynamicScriptsRegistry, filepaths: List[String] )
+  : ( DynamicScriptsRegistry, List[String] ) =
     ( ( r, List[String]() ) /: filepaths ) {
       case ( ( r: DynamicScriptsRegistry, errors: List[String] ), filepath: String ) =>
         try {
           val path = Paths.get( filepath ).toRealPath()
           parseDynamicScript( path.toFile ) match {
-            case Left( scripts: List[DynamicScript] ) => ( ( r /: scripts ) { ( ri, script ) => merge( ri, script ) }, errors )
-            case Right( error: String )               => ( r, errors :+ error )
+            case Left( scripts: List[DynamicScript] ) =>
+              ( ( r /: scripts ) { ( ri, script ) => merge( ri, script ) }, errors )
+            case Right( error: String )               =>
+              ( r, errors :+ error )
           }
 
         } catch {
-          case t: Throwable =>
+          case t: java.lang.Throwable =>
             ( r, errors :+ t.getClass.getName+" for dynamic script filepath: '"+filepath+"': "+t.getMessage )
         }
     }

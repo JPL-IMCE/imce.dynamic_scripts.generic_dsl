@@ -2,7 +2,7 @@
  *
  * License Terms
  *
- * Copyright (c) 2014-2015, California Institute of Technology ("Caltech").
+ * Copyright (c) 2014-2016, California Institute of Technology ("Caltech").
  * U.S. Government sponsorship acknowledged.
  *
  * All rights reserved.
@@ -38,6 +38,10 @@
  */
 package gov.nasa.jpl.dynamicScripts
 
+import scala.collection.immutable._
+import scala.{Enumeration, Int, Option, Ordering, None, Some, StringContext}
+import scala.Predef.{???, augmentString, String}
+
 /**
  * @author Nicolas.F.Rouquette@jpl.nasa.gov
  */
@@ -49,7 +53,7 @@ object DynamicScriptsTypes {
     type ScopeKind = Value
     val STEREOTYPE, METACLASS, CLASSIFIER = Value
   }
-  import ScopeKind._
+  //import ScopeKind._
 
   object ScopeAccess extends Enumeration {
     type ScopeAccess = Value
@@ -69,12 +73,12 @@ object DynamicScriptsTypes {
   import BinaryDerivationRefresh._
 
   case class QName( qname: String ) {
-    def prettyPrint(): String = s"'${qname}'"
+    def prettyPrint(): String = s"'$qname'"
   }
   case class JName( jname: String )
   case class SName( sname: String )
   case class HName( hname: String ) {
-    def prettyPrint(): String = s"'${hname}'"
+    def prettyPrint(): String = s"'$hname'"
   }
   case class FName( path: String )
 
@@ -83,7 +87,8 @@ object DynamicScriptsTypes {
     def sortKey(): String
   }
 
-  case class ProjectContext( project: JName, dependencies: Seq[JName], requiresPlugin: Option[HName] ) extends BundleContext {
+  case class ProjectContext( project: JName, dependencies: Seq[JName], requiresPlugin: Option[HName] )
+    extends BundleContext {
     def prettyPrint( indentation: String ): String = {
       val tab0 = indentation
       val tab1 = tab0 + TAB_INDENT
@@ -92,13 +97,13 @@ object DynamicScriptsTypes {
           ""
         else
           ( for ( d <- dependencies ) yield d.jname ) mkString (
-            s"\n${tab0}dependencies: {\n${tab1}", s"\n${tab1}", s"\n${tab0}}" )
+            s"\n${tab0}dependencies: {\n$tab1", s"\n$tab1", s"\n$tab0}" )
 
       val rp = requiresPlugin match {
         case None       => ""
-        case Some( hn ) => s"\n${tab0}requires.plugin.id: '${hn.hname}'"
+        case Some( hn ) => s"\n$tab0 requires.plugin.id: '${hn.hname}'"
       }
-      s"${indentation}project: ${project.jname}${deps}${rp}"
+      s"${indentation}project: ${project.jname}$deps$rp"
     }
     def sortKey(): String = s"project:${project.jname}"
   }
@@ -115,13 +120,15 @@ object DynamicScriptsTypes {
     val access: ScopeAccess
     val className: JName
     val methodName: SName
-    def prettyPrintInfo( indentation: String ): String =
+    def prettyPrintInfo( indentation: String ): String = {
+      val prettyIcon = if (icon.isDefined) s"\n${indentation}icon: '${icon.get.path}'" else ""
       s"""|
-          |${indentation}name: ${name.prettyPrint()}${if ( icon.isDefined ) s"\n${indentation}icon: '${icon.get.path}'" else ""}
-          |${context.prettyPrint( indentation )}
-          |${indentation}access: ${ScopeAccess.prettyPrint( access )}
+          |${indentation}name: ${name.prettyPrint()}$prettyIcon
+          |${context.prettyPrint(indentation)}
+          |${indentation}access: ${ScopeAccess.prettyPrint(access)}
           |${indentation}class: ${className.jname}
           |${indentation}method: ${methodName.sname}""".stripMargin
+    }
 
     def prettyPrint( indentation: String ): String
 
@@ -161,8 +168,8 @@ object DynamicScriptsTypes {
       }
 
     def prettyPrintComputed( indentation: String, kind: String ) =
-      s"""|${indentation}${prettyPrintRefresh()}${kind}(${prettyPrintInfo( indentation + TAB_INDENT )}
-          |\n${indentation})""".stripMargin
+      s"""|$indentation${prettyPrintRefresh()}$kind(${prettyPrintInfo( indentation + TAB_INDENT )}
+          |\n$indentation)""".stripMargin
   }
 
   case class ComputedDerivedWidget(
@@ -232,7 +239,7 @@ object DynamicScriptsTypes {
     override def prettyPrint( indentation: String ): String = {
       val tpath = ( for ( p <- toolbarMenuPath ) yield p.prettyPrint() ) mkString (
         s"\n${indentation}toolbarMenuPath: { ", " > ", " }" )
-      indentation + s"MainToolbarMenuAction(${tpath}${prettyPrintInfo( indentation + TAB_INDENT )}\n${indentation})"
+      indentation + s"MainToolbarMenuAction($tpath${prettyPrintInfo( indentation + TAB_INDENT )}\n$indentation)"
     }
   }
 
@@ -245,7 +252,7 @@ object DynamicScriptsTypes {
     methodName: SName ) extends DynamicActionScript with DynamicMenuActionScript {
 
     override def prettyPrint( indentation: String ): String =
-      indentation + s"BrowserContextMenuAction(${prettyPrintInfo( indentation + TAB_INDENT )}\n${indentation})"
+      indentation + s"BrowserContextMenuAction(${prettyPrintInfo( indentation + TAB_INDENT )}\n$indentation)"
   }
 
   sealed abstract class DynamicContextDiagramActionScript extends DynamicActionScript {
@@ -265,16 +272,17 @@ object DynamicScriptsTypes {
           ""
         else
           ( for ( ds <- diagramStereotypes ) yield s"'${ds.qname}'" ) mkString (
-            s"\n${tab0}diagramStereotypes: {\n${tab1}", s",\n${tab1}", s"\n${tab0}}" )
+            s"\n${tab0}diagramStereotypes: {\n$tab1", s",\n$tab1", s"\n$tab0}" )
+      val prettyIcon = if ( icon.isDefined ) s"\n${tab0}icon: '${icon.get.path}'" else ""
       s"""|
-          |${tab0}name: ${name.prettyPrint()}${if ( icon.isDefined ) s"\n${tab0}icon: '${icon.get.path}'" else ""}${dTypes}${dSTypes}
+          |${tab0}name: ${name.prettyPrint()}$prettyIcon$dTypes$dSTypes
           |${context.prettyPrint( tab0 )}
           |${tab0}class: ${className.jname}
           |${tab0}method: ${methodName.sname}""".stripMargin
     }
 
     def prettyPrintKind( indentation: String, kind: String, aux: => String ): String =
-      indentation + kind + s"(${prettyPrintInfo( indentation + TAB_INDENT )}${aux}\n${indentation})"
+      indentation + kind + s"(${prettyPrintInfo( indentation + TAB_INDENT )}$aux\n$indentation)"
   }
 
   case class DynamicContextDiagramActionScriptInfo(
@@ -289,7 +297,9 @@ object DynamicScriptsTypes {
     override def prettyPrint( indentation: String ): String = ???
   }
 
-  sealed abstract class DynamicContextMenuActionScript extends DynamicContextDiagramActionScript with DynamicMenuActionScript {}
+  sealed abstract class DynamicContextMenuActionScript
+    extends DynamicContextDiagramActionScript
+      with DynamicMenuActionScript {}
 
   case class DiagramContextMenuAction(
     info: DynamicContextDiagramActionScriptInfo ) extends DynamicContextMenuActionScript {
@@ -314,15 +324,18 @@ object DynamicScriptsTypes {
   }
 
   case class MetaclassDesignation( metaclass: SName ) extends ElementKindDesignation {
-    override def prettyPrint( indentation: String ): String = s"${indentation}[ m: ${metaclass.sname} ]"
+    override def prettyPrint( indentation: String ): String = s"$indentation[ m: ${metaclass.sname} ]"
     def compareTo( other: ElementKindDesignation ): Int = other match {
       case md: MetaclassDesignation => metaclass.sname.compareTo( md.metaclass.sname )
       case _                        => -1
     }
   }
 
-  case class StereotypedMetaclassDesignation( metaclass: SName, profile: QName, stereotype: QName ) extends ElementKindDesignation {
-    override def prettyPrint( indentation: String ): String = s"${indentation}[ m: ${metaclass.sname}, p: ${profile.prettyPrint()}, s: ${stereotype.prettyPrint()}]"
+  case class StereotypedMetaclassDesignation
+  ( metaclass: SName, profile: QName, stereotype: QName )
+    extends ElementKindDesignation {
+    override def prettyPrint( indentation: String ): String =
+      s"$indentation[ m: ${metaclass.sname}, p: ${profile.prettyPrint()}, s: ${stereotype.prettyPrint()}]"
     def compareTo( other: ElementKindDesignation ): Int = other match {
       case _: MetaclassDesignation => 1
       case smd: StereotypedMetaclassDesignation =>
@@ -337,8 +350,11 @@ object DynamicScriptsTypes {
     }
   }
 
-  case class ClassifiedInstanceDesignation( metaclass: SName, classifier: QName ) extends ElementKindDesignation {
-    override def prettyPrint( indentation: String ): String = s"${indentation}[ m: ${metaclass.sname}, c: ${classifier.prettyPrint()}]"
+  case class ClassifiedInstanceDesignation
+  ( metaclass: SName, classifier: QName )
+    extends ElementKindDesignation {
+    override def prettyPrint( indentation: String ): String =
+      s"$indentation[ m: ${metaclass.sname}, c: ${classifier.prettyPrint()}]"
     def compareTo( other: ElementKindDesignation ): Int = other match {
       case _@ ( _: MetaclassDesignation | _: StereotypedMetaclassDesignation ) => 1
       case cdi: ClassifiedInstanceDesignation => metaclass.sname.compareTo( cdi.metaclass.sname ) match {
@@ -349,8 +365,12 @@ object DynamicScriptsTypes {
     }
   }
 
-  case class StereotypedClassifiedInstanceDesignation( metaclass: SName, classifier: QName, profile: QName, stereotype: QName ) extends ElementKindDesignation {
-    override def prettyPrint( indentation: String ): String = s"${indentation}[ m: ${metaclass.sname}, c: ${classifier.prettyPrint()}, p: ${profile.prettyPrint()}, s: ${stereotype.prettyPrint()}]"
+  case class StereotypedClassifiedInstanceDesignation
+  ( metaclass: SName, classifier: QName, profile: QName, stereotype: QName )
+    extends ElementKindDesignation {
+    override def prettyPrint( indentation: String ): String =
+      s"$indentation[ m: ${metaclass.sname}, c: ${classifier.prettyPrint()}, "+
+      s"p: ${profile.prettyPrint()}, s: ${stereotype.prettyPrint()}]"
     def compareTo( other: ElementKindDesignation ): Int = other match {
       case _@ ( _: MetaclassDesignation | _: StereotypedMetaclassDesignation | _: ClassifiedInstanceDesignation ) => 1
       case scid: StereotypedClassifiedInstanceDesignation => metaclass.sname.compareTo( scid.metaclass.sname ) match {
@@ -423,8 +443,10 @@ object DynamicScriptsTypes {
     override def prettyPrint( indentation: String ): String = {
       val indent1 = indentation + TAB_INDENT
       val indent2 = indent1 + TAB_INDENT
-      val prettyFeatures = s"${indent1}features {\n${( for ( df <- computedDerivedFeatures ) yield df.prettyPrint( indent2 ) ) mkString ( "\n" )}\n${indent1}})"
-      s"${indentation}characterization(\n${indent1}name=${name.prettyPrint()}\n${characterizesInstancesOf.prettyPrint( indent1 )}\n${prettyFeatures}"
+      val features = ( for ( df <- computedDerivedFeatures ) yield df.prettyPrint( indent2 ) ) mkString "\n"
+      val prettyFeatures = s"${indent1}features {\n$features\n$indent1})"
+      val prettyInstances = characterizesInstancesOf.prettyPrint( indent1 )
+      s"${indentation}characterization(\n${indent1}name=${name.prettyPrint()}\n$prettyInstances\n$prettyFeatures"
     }
 
   }
@@ -449,8 +471,10 @@ object DynamicScriptsTypes {
     override def prettyPrint( indentation: String ): String = {
       val indent1 = indentation + TAB_INDENT
       val indent2 = indent1 + TAB_INDENT
-      val prettyScripts = s"${indent1}scripts {\n${( for ( s <- scripts ) yield s.prettyPrint( indent2 ) ) mkString ( "\n" )}\n${indent1}})"
-      s"${indentation}dynamicScripts(\n${indent1}name=${name.prettyPrint()}\n${applicableTo.prettyPrint( indent1 )}\n${prettyScripts}"
+      val allScripts = ( for ( s <- scripts ) yield s.prettyPrint( indent2 ) ) mkString "\n"
+      val prettyScripts = s"${indent1}scripts {\n$allScripts\n$indent1})"
+      val prettyApplicable = applicableTo.prettyPrint( indent1 )
+      s"${indentation}dynamicScripts(\n${indent1}name=${name.prettyPrint()}\n$prettyApplicable\n$prettyScripts"
     }
   }
 
@@ -462,7 +486,9 @@ object DynamicScriptsTypes {
       }
   }
 
-  def merge( c1: DynamicScriptsForInstancesOfKind, c2: DynamicScriptsForInstancesOfKind ): DynamicScriptsForInstancesOfKind =
+  def merge
+  ( c1: DynamicScriptsForInstancesOfKind, c2: DynamicScriptsForInstancesOfKind )
+  : DynamicScriptsForInstancesOfKind =
     if ( DynamicScriptsForInstancesOfKindOrdering().compare( c1, c2 ) != 0 ) c1
     else c1.copy( scripts = c1.scripts ++ c2.scripts )
 
@@ -473,8 +499,9 @@ object DynamicScriptsTypes {
     override def prettyPrint( indentation: String ): String = {
       val indent1 = indentation + TAB_INDENT
       val indent2 = indent1 + TAB_INDENT
-      val prettyScripts = s"${indent1}scripts {\n${( for ( s <- scripts ) yield s.prettyPrint( indent2 ) ) mkString ( "\n" )}\n${indent1}})"
-      s"${indentation}toolbarMenuScripts(\n${indent1}name=${name.prettyPrint()}\n${prettyScripts}"
+      val allScripts = ( for ( s <- scripts ) yield s.prettyPrint( indent2 ) ) mkString "\n"
+      val prettyScripts = s"${indent1}scripts {\n$allScripts\n$indent1})"
+      s"${indentation}toolbarMenuScripts(\n${indent1}name=${name.prettyPrint()}\n$prettyScripts"
     }
   }
 
@@ -483,7 +510,9 @@ object DynamicScriptsTypes {
       c1.name.hname.compareTo( c2.name.hname )
   }
 
-  def merge( c1: DynamicScriptsForMainToolbarMenus, c2: DynamicScriptsForMainToolbarMenus ): DynamicScriptsForMainToolbarMenus =
+  def merge
+  ( c1: DynamicScriptsForMainToolbarMenus, c2: DynamicScriptsForMainToolbarMenus )
+  : DynamicScriptsForMainToolbarMenus =
     if ( DynamicScriptsForMainToolbarMenusOrdering().compare( c1, c2 ) != 0 ) c1
     else c1.copy( scripts = c1.scripts ++ c2.scripts )
 

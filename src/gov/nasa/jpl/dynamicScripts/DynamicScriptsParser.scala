@@ -2,7 +2,7 @@
  *
  * License Terms
  *
- * Copyright (c) 2014-2015, California Institute of Technology ("Caltech").
+ * Copyright (c) 2014-2016, California Institute of Technology ("Caltech").
  * U.S. Government sponsorship acknowledged.
  *
  * All rights reserved.
@@ -39,6 +39,9 @@
 package gov.nasa.jpl.dynamicScripts
 
 import scala.language.implicitConversions
+import scala.collection.immutable._
+import scala.{Any, Boolean, Char, None, Option, Some}
+import scala.Predef.String
 import scala.util.Try
 
 import org.parboiled2._
@@ -93,40 +96,69 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
   def ReadWriteAccess = rule { VS( "r/w" ) ~> ( () => ScopeAccess.READ_WRITE ) }
   def scopeAccess: Rule1[ScopeAccess] = rule { ReadOnlyAccess | ReadWriteAccess }
   
-  def Filepath = rule { ch( '\'' ) ~ capture( CharPredicate.Alpha ~ zeroOrMore( ch( ' ' ) ~ FileChar | FileChar ) ) ~ '\'' ~> ( FName( _ ) ) }
+  def Filepath = rule {
+    ch( '\'' ) ~ capture( CharPredicate.Alpha ~ zeroOrMore( ch( ' ' ) ~ FileChar | FileChar ) ) ~ '\'' ~>
+      ( FName( _ ) )
+  }
 
-  def HumanName = rule { ch( '\'' ) ~ capture( CharPredicate.Alpha ~ zeroOrMore( ch( ' ' ) ~ AnyChar | AnyChar ) ) ~ '\'' ~> ( HName( _ ) ) }
+  def HumanName = rule {
+    ch( '\'' ) ~ capture( CharPredicate.Alpha ~ zeroOrMore( ch( ' ' ) ~ AnyChar | AnyChar ) ) ~ '\'' ~>
+      ( HName( _ ) )
+  }
 
-  def SimpleName = rule { capture( CharPredicate.Alpha ~ zeroOrMore( CharPredicate.AlphaNum ) ) ~ ( WS | !CharPredicate.AlphaNum )  ~> ( SName( _ ) ) }
+  def SimpleName = rule {
+    capture( CharPredicate.Alpha ~ zeroOrMore( CharPredicate.AlphaNum ) ) ~ ( WS | !CharPredicate.AlphaNum ) ~>
+      ( SName( _ ) ) }
   
-  def SimpleNameComma = rule { capture( CharPredicate.Alpha ~ zeroOrMore( CharPredicate.AlphaNum ) ) ~ VS ~ ',' ~> ( SName( _ ) ) }
+  def SimpleNameComma = rule {
+    capture( CharPredicate.Alpha ~ zeroOrMore( CharPredicate.AlphaNum ) ) ~ VS ~ ',' ~>
+      ( SName( _ ) )
+  }
 
-  def AlphaAlphaNum = rule { CharPredicate.Alpha ~ zeroOrMore( CharPredicate.AlphaNum ++ '_' ) }
+  def AlphaAlphaNum =
+    rule { CharPredicate.Alpha ~ zeroOrMore( CharPredicate.AlphaNum ++ '_' ) }
 
-  def JavaName = rule { capture( AlphaAlphaNum ~ zeroOrMore( ch( '.' ) ~ AlphaAlphaNum ) ) ~ VS ~> ( JName( _ ) ) }
+  def JavaName =
+    rule { capture( AlphaAlphaNum ~ zeroOrMore( ch( '.' ) ~ AlphaAlphaNum ) ) ~ VS ~> ( JName( _ ) ) }
 
-  def AlphaAnyChar = rule { AlphaOrStar ~ zeroOrMore( ch( ' ' ) ~ AnyChar | AnyChar ) }
+  def AlphaAnyChar =
+    rule { AlphaOrStar ~ zeroOrMore( ch( ' ' ) ~ AnyChar | AnyChar ) }
   
-  def QualifiedName = rule { ch( '\'' ) ~ capture( AlphaAnyChar ~ zeroOrMore( str( "::" ) ~ AlphaAnyChar ) ) ~ '\'' ~> ( QName( _ ) ) }
+  def QualifiedName =
+    rule { ch( '\'' ) ~ capture( AlphaAnyChar ~ zeroOrMore( str( "::" ) ~ AlphaAnyChar ) ) ~ '\'' ~> ( QName( _ ) ) }
  
-  def QualifiedNameComma = rule { ch( '\'' ) ~ capture( AlphaAnyChar ~ zeroOrMore( str( "::" ) ~ AlphaAnyChar ) ) ~ '\'' ~ ',' ~> ( QName( _ ) ) }
+  def QualifiedNameComma =
+    rule { ch( '\'' ) ~ capture( AlphaAnyChar ~ zeroOrMore( str( "::" ) ~ AlphaAnyChar ) ) ~ '\'' ~ ',' ~> ( QName( _ ) ) }
   
-  def JavaNames = rule { '{' ~ JavaName ~ zeroOrMore( ',' ~ JavaName ) ~ '}' ~> { ( name: JName, names: Seq[JName] ) => Seq( name ) ++ names } }
+  def JavaNames =
+    rule { '{' ~ JavaName ~ zeroOrMore( ',' ~ JavaName ) ~ '}' ~> { ( name: JName, names: Seq[JName] ) => Seq( name ) ++ names } }
 
-  def HumanNames = rule { '{' ~ HumanName ~ zeroOrMore( ',' ~ HumanName ) ~ '}' ~> { ( name: HName, names: Seq[HName] ) => Seq( name ) ++ names } }
+  def HumanNames =
+    rule { '{' ~ HumanName ~ zeroOrMore( ',' ~ HumanName ) ~ '}' ~> { ( name: HName, names: Seq[HName] ) => Seq( name ) ++ names } }
 
-  def SimpleNames = rule { '{' ~ SimpleName ~ zeroOrMore( ',' ~ SimpleName ) ~ '}' ~> { ( name: SName, names: Seq[SName] ) => Seq( name ) ++ names } }
+  def SimpleNames =
+    rule { '{' ~ SimpleName ~ zeroOrMore( ',' ~ SimpleName ) ~ '}' ~> { ( name: SName, names: Seq[SName] ) => Seq( name ) ++ names } }
 
-  def QualifiedNames = rule { '{' ~ QualifiedName ~ zeroOrMore( ',' ~ QualifiedName ) ~ '}' ~> { ( name: QName, names: Seq[QName] ) => Seq( name ) ++ names } }
+  def QualifiedNames =
+    rule { '{' ~ QualifiedName ~ zeroOrMore( ',' ~ QualifiedName ) ~ '}' ~> { ( name: QName, names: Seq[QName] ) => Seq( name ) ++ names } }
 
-  def HNamePath = rule { '{' ~ HumanName ~ zeroOrMore( '>' ~ HumanName ) ~ '}' ~> { ( name: HName, names: Seq[HName] ) => Seq( name ) ++ names } }
+  def HNamePath =
+    rule { '{' ~ HumanName ~ zeroOrMore( '>' ~ HumanName ) ~ '}' ~> { ( name: HName, names: Seq[HName] ) => Seq( name ) ++ names } }
 
-  def IntegerValueTypeDesignation = rule { VS( "Integer") ~> ( () => IntegerTypeDesignation() ) }
-  def RationalValueTypeDesignation = rule { VS( "Rational") ~> ( () => RationalTypeDesignation() ) }
-  def RealValueTypeDesignation = rule { VS( "Real") ~> ( () => RealTypeDesignation() ) }
-  def StringValueTypeDesignation = rule { VS( "String") ~> ( () => StringTypeDesignation() ) }
+  def IntegerValueTypeDesignation =
+    rule { VS( "Integer") ~> ( () => IntegerTypeDesignation() ) }
+
+  def RationalValueTypeDesignation =
+    rule { VS( "Rational") ~> ( () => RationalTypeDesignation() ) }
+
+  def RealValueTypeDesignation =
+    rule { VS( "Real") ~> ( () => RealTypeDesignation() ) }
+
+  def StringValueTypeDesignation =
+    rule { VS( "String") ~> ( () => StringTypeDesignation() ) }
   
-  def primitiveValueTypeDesignation = rule { IntegerValueTypeDesignation | RationalValueTypeDesignation | RealValueTypeDesignation | StringValueTypeDesignation }
+  def primitiveValueTypeDesignation =
+    rule { IntegerValueTypeDesignation | RationalValueTypeDesignation | RealValueTypeDesignation | StringValueTypeDesignation }
   
   def CustomValueTypeDesignation = rule { str( "custom" ) ~ '[' ~ HumanName ~ ']' ~> CustomTypeDesignation }
   
@@ -136,45 +168,81 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
    * The prefix indicates the type of the terminal.
    */
   
-  def DiagramTypes = rule { optional( str( "diagramTypes" ) ~ ':' ~ HumanNames ) ~> (_.getOrElse( Seq() )) }
-  def DiagramStereotypes = rule { optional( str( "diagramStereotypes" ) ~ ':' ~ QualifiedNames ) ~> (_.getOrElse( Seq() )) }
-  
-  def name_HumanName = rule { str( "name" ) ~ ':' ~ HumanName }
-  
-  def icon_Filepath = rule { optional( str( "icon" ) ~ ':' ~ Filepath ) }
-  
-  def project_JavaName = rule { str( "project" ) ~ ':' ~ JavaName }
-  def dependencies_JavaName = rule { optional( str( "dependencies" ) ~ ':' ~ JavaNames ) ~> (_.getOrElse( Seq() )) }
-  
-  def plugin_HumanName = rule { str( "plugin.id" ) ~ ':' ~ HumanName }
-  def requiresPlugin_HumanName = rule { optional( str( "requires.plugin.id" ) ~ ':' ~ HumanName ) }
-  
-  def class_JavaName = rule { str( "class" ) ~ ':' ~ JavaName }
-  def method_SimpleName = rule { str( "method" ) ~ ':' ~ SimpleName }
+  def DiagramTypes =
+    rule { optional( str( "diagramTypes" ) ~ ':' ~ HumanNames ) ~> (_.getOrElse( Seq() )) }
 
-  def metaclass_SimpleName = rule { '[' ~ str( "m" ) ~ ':' ~ SimpleName ~ ']' }
-  def metaclass_SimpleNameComma = rule { str( "m" ) ~ ':' ~ SimpleNameComma }
-  def profile_QualifiedNameComma = rule { str( "p" ) ~ ':' ~ QualifiedNameComma }
-  def stereotype_QualifiedName = rule { str( "s" ) ~ ':' ~ QualifiedName }
-  def classifier_QualifiedName = rule { str( "c" ) ~ ':' ~ QualifiedName }
-
-  def elementShape = rule { str( "elementShape" ) ~ ':' ~ elementTypeDesignation }
-
-  def elementPath = rule { str( "elementPath" ) ~ ':' ~ elementTypeDesignation }
-  def pathFrom = rule { str( "pathFrom" ) ~ ':' ~ elementTypeDesignation }
-  def pathTo = rule { str( "pathTo" ) ~ ':' ~ elementTypeDesignation }
-
-  def toolbarMenuPath_HNames = rule { str( "toolbarMenuPath" ) ~ ':' ~ HNamePath }
+  def DiagramStereotypes =
+    rule { optional( str( "diagramStereotypes" ) ~ ':' ~ QualifiedNames ) ~> (_.getOrElse( Seq() )) }
   
-  def access_ScopeAccess = rule { optional( str( "access" ) ~ ':' ~ scopeAccess ) ~> (_.getOrElse( ScopeAccess.READ_WRITE ) ) }
+  def name_HumanName =
+    rule { str( "name" ) ~ ':' ~ HumanName }
+  
+  def icon_Filepath =
+    rule { optional( str( "icon" ) ~ ':' ~ Filepath ) }
+  
+  def project_JavaName =
+    rule { str( "project" ) ~ ':' ~ JavaName }
+
+  def dependencies_JavaName =
+    rule { optional( str( "dependencies" ) ~ ':' ~ JavaNames ) ~> (_.getOrElse( Seq() )) }
+  
+  def plugin_HumanName =
+    rule { str( "plugin.id" ) ~ ':' ~ HumanName }
+
+  def requiresPlugin_HumanName =
+    rule { optional( str( "requires.plugin.id" ) ~ ':' ~ HumanName ) }
+  
+  def class_JavaName =
+    rule { str( "class" ) ~ ':' ~ JavaName }
+
+  def method_SimpleName =
+    rule { str( "method" ) ~ ':' ~ SimpleName }
+
+  def metaclass_SimpleName =
+    rule { '[' ~ str( "m" ) ~ ':' ~ SimpleName ~ ']' }
+
+  def metaclass_SimpleNameComma =
+    rule { str( "m" ) ~ ':' ~ SimpleNameComma }
+
+  def profile_QualifiedNameComma =
+    rule { str( "p" ) ~ ':' ~ QualifiedNameComma }
+
+  def stereotype_QualifiedName =
+    rule { str( "s" ) ~ ':' ~ QualifiedName }
+
+  def classifier_QualifiedName =
+    rule { str( "c" ) ~ ':' ~ QualifiedName }
+
+  def elementShape =
+    rule { str( "elementShape" ) ~ ':' ~ elementTypeDesignation }
+
+  def elementPath =
+    rule { str( "elementPath" ) ~ ':' ~ elementTypeDesignation }
+
+  def pathFrom =
+    rule { str( "pathFrom" ) ~ ':' ~ elementTypeDesignation }
+
+  def pathTo =
+    rule { str( "pathTo" ) ~ ':' ~ elementTypeDesignation }
+
+  def toolbarMenuPath_HNames =
+    rule { str( "toolbarMenuPath" ) ~ ':' ~ HNamePath }
+  
+  def access_ScopeAccess =
+    rule { optional( str( "access" ) ~ ':' ~ scopeAccess ) ~> (_.getOrElse( ScopeAccess.READ_WRITE ) ) }
   
   /**
    * Non-terminal rules.
    */
   
-  def projectContext = rule { project_JavaName ~ dependencies_JavaName ~ requiresPlugin_HumanName ~> ProjectContext }
-  def pluginContext = rule { plugin_HumanName ~> PluginContext }
-  def bundleContext = rule { projectContext | pluginContext }
+  def projectContext =
+    rule { project_JavaName ~ dependencies_JavaName ~ requiresPlugin_HumanName ~> ProjectContext }
+
+  def pluginContext =
+    rule { plugin_HumanName ~> PluginContext }
+
+  def bundleContext =
+    rule { projectContext | pluginContext }
 
   def dynamicScriptInfo = rule {
     name_HumanName ~ icon_Filepath ~ bundleContext ~ access_ScopeAccess ~ class_JavaName ~ method_SimpleName
@@ -263,10 +331,15 @@ class DynamicScriptsParser( val input: ParserInput ) extends Parser with StringB
     }
   }
   
-  def DerivedFeature = rule { DelayedDerivedWidget | EarlyDerivedWidget | DelayedDerivedProperty | EarlyDerivedProperty | DelayedDerivedTable | EarlyDerivedTable | DelayedDerivedTree | EarlyDerivedTree }
+  def DerivedFeature = rule {
+    DelayedDerivedWidget | EarlyDerivedWidget | DelayedDerivedProperty |
+      EarlyDerivedProperty | DelayedDerivedTable | EarlyDerivedTable |
+      DelayedDerivedTree | EarlyDerivedTree
+  }
 
   def toolbarMenuAction = rule {
-    toolbarMenuPath_HNames ~ name_HumanName ~ icon_Filepath ~ bundleContext ~ access_ScopeAccess ~ class_JavaName ~ method_SimpleName
+    toolbarMenuPath_HNames ~ name_HumanName ~ icon_Filepath ~
+      bundleContext ~ access_ScopeAccess ~ class_JavaName ~ method_SimpleName
   }
   
   def ToolbarMenuAction = rule { 

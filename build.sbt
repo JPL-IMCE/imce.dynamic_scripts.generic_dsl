@@ -1,26 +1,51 @@
 import sbt.Keys._
 import sbt._
 
-import gov.nasa.jpl.mbee.sbt._
+import gov.nasa.jpl.imce.sbt._
 
-lazy val core = Project("jpl-dynamic-scripts-generic-dsl", file(".")).
-  settings (GitVersioning.buildSettings). // in principle, unnecessary; in practice: doesn't work without this
-  enablePlugins (MBEEGitPlugin).
-  settings (
-    MBEEKeys.mbeeLicenseYearOrRange := "2014-2015",
-    MBEEKeys.mbeeOrganizationInfo := MBEEPlugin.MBEEOrganizations.imce,
+updateOptions := updateOptions.value.withCachedResolution(true)
+
+lazy val core = Project("imce-dynamic_scripts-generic_dsl", file("."))
+  .enablePlugins(IMCEGitPlugin)
+  .enablePlugins(IMCEReleasePlugin)
+  .settings(IMCEPlugin.strictScalacFatalWarningsSettings)
+  .settings(IMCEReleasePlugin.packageReleaseProcessSettings)
+  .settings(
+    IMCEKeys.licenseYearOrRange := "2014-2016",
+    IMCEKeys.organizationInfo := IMCEPlugin.Organizations.cae,
+    organization := "gov.nasa.jpl.imce.dynamic_scripts",
+
+    buildInfoPackage := "gov.nasa.jpl.imce.dynamic_scripts.generic_dsl",
+    buildInfoKeys ++= Seq[BuildInfoKey](BuildInfoKey.action("buildDateUTC") { buildUTCDate.value }),
+
+    projectID := {
+      val previous = projectID.value
+      previous.extra(
+        "build.date.utc" -> buildUTCDate.value,
+        "artifact.kind" -> "generic.library")
+    },
+
+    IMCEKeys.targetJDK := IMCEKeys.jdk18.value,
+    git.baseVersion := Versions.version,
     // include all test artifacts
     publishArtifact in Test := true,
     scalaSource in Compile := baseDirectory.value / "src",
     scalaSource in Test := baseDirectory.value / "tests",
+
     classDirectory in Compile := baseDirectory.value / "bin",
+    cleanFiles += (classDirectory in Compile).value,
+
     classDirectory in Test := baseDirectory.value / "bin.tests",
+    cleanFiles += (classDirectory in Test).value,
 
-    // TODO: Jenkins CI: This should be unnecessary since the repo is in the library dependency POM!!!
-    resolvers += new MavenRepository("bintray-pchiusano-scalaz-stream", "http://dl.bintray.com/pchiusano/maven"),
+    extractArchives := {},
 
-    libraryDependencies ++= Seq (
-      MBEEPlugin.MBEEOrganizations.imce.mbeeZipArtifactVersion("jpl-mbee-common-scala-libraries_core", MBEEKeys.mbeeReleaseVersionPrefix.value, Versions.jpl_mbee_common_scala_libraries_revision),
-      MBEEPlugin.MBEEOrganizations.imce.mbeeZipArtifactVersion("jpl-mbee-common-scala-libraries_other", MBEEKeys.mbeeReleaseVersionPrefix.value, Versions.jpl_mbee_common_scala_libraries_revision)
-    )
+    resolvers += Resolver.bintrayRepo("jpl-imce", "gov.nasa.jpl.imce"),
+    resolvers += Resolver.bintrayRepo("tiwg", "org.omg.tiwg"),
+
+    libraryDependencies +=
+      "gov.nasa.jpl.imce" %% "imce.third_party.other_scala_libraries" % Versions_other_scala_libraries.version
+        % "provided"
+        artifacts
+        Artifact("imce.third_party.other_scala_libraries", "zip", "zip", Some("resource"), Seq(), None, Map())
   )

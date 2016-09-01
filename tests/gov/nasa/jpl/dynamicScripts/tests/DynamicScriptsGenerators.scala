@@ -2,7 +2,7 @@
  *
  * License Terms
  *
- * Copyright (c) 2014-2015, California Institute of Technology ("Caltech").
+ * Copyright (c) 2014-2016, California Institute of Technology ("Caltech").
  * U.S. Government sponsorship acknowledged.
  *
  * All rights reserved.
@@ -41,6 +41,10 @@ package gov.nasa.jpl.dynamicScripts.tests
 import org.scalacheck._
 
 import gov.nasa.jpl.dynamicScripts.DynamicScriptsTypes._
+
+import scala.Predef.augmentString
+import scala.StringContext
+import scala.collection.immutable._
 
 /**
  * @author Nicolas.F.Rouquette@jpl.nasa.gov
