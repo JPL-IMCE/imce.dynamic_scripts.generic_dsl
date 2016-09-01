@@ -3,16 +3,7 @@ import sbt._
 
 import gov.nasa.jpl.imce.sbt._
 
-useGpg := true
-
 updateOptions := updateOptions.value.withCachedResolution(true)
-
-developers := List(
-  Developer(
-    id="rouquett",
-    name="Nicolas F. Rouquette",
-    email="nicolas.f.rouquette@jpl.nasa.gov",
-    url=url("https://gateway.jpl.nasa.gov/personal/rouquett/default.aspx")))
 
 lazy val core = Project("imce-dynamic_scripts-generic_dsl", file("."))
   .enablePlugins(IMCEGitPlugin)
@@ -49,9 +40,12 @@ lazy val core = Project("imce-dynamic_scripts-generic_dsl", file("."))
 
     extractArchives := {},
 
-    libraryDependencies ++= Seq (
-      "gov.nasa.jpl.imce.thirdParty" %% "other-scala-libraries" % Versions_other_scala_libraries.version %
-        "compile" artifacts
-        Artifact("other-scala-libraries", "zip", "zip", Some("resource"), Seq(), None, Map())
-    )
+    resolvers += Resolver.bintrayRepo("jpl-imce", "gov.nasa.jpl.imce"),
+    resolvers += Resolver.bintrayRepo("tiwg", "org.omg.tiwg"),
+
+    libraryDependencies +=
+      "gov.nasa.jpl.imce" %% "imce.third_party.other_scala_libraries" % Versions_other_scala_libraries.version
+        % "provided"
+        artifacts
+        Artifact("imce.third_party.other_scala_libraries", "zip", "zip", Some("resource"), Seq(), None, Map())
   )

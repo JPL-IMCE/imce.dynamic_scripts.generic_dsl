@@ -4,8 +4,9 @@
 .project
 bin
 bin.tests
+local.*
 project/target
 project/project
-root
-sbt.staging
 target
+gh-pages/
+local.*
