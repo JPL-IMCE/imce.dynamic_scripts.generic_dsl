@@ -29,7 +29,6 @@ lazy val core = Project("imce-dynamic_scripts-generic_dsl", file("."))
     git.baseVersion := Versions.version,
     // include all test artifacts
     publishArtifact in Test := true,
-    scalaSource in Compile := baseDirectory.value / "src",
     scalaSource in Test := baseDirectory.value / "tests",
 
     classDirectory in Compile := baseDirectory.value / "bin",
