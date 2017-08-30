@@ -1,8 +1,24 @@
+enablePlugins(SignedAetherPlugin)
 
-// publish to bintray.com via: `sbt publish`
-publishTo := Some(
-  "JPL-IMCE" at
-    s"https://api.bintray.com/content/jpl-imce/gov.nasa.jpl.imce/imce.dynamic_scripts.generic_dsl/${version.value}")
+disablePlugins(AetherPlugin)
+
+overridePublishSignedSettings
+
+// do not include all repositories in the POM
+// (this is important for staging since artifacts published to a staging repository
+//  can be promoted (i.e. published) to another repository)
+pomAllRepositories := false
+
+// make sure no repositories show up in the POM file
+pomIncludeRepository := { _ => false }
+
+// include *.zip artifacts in the POM dependency section
+makePomConfiguration :=
+  makePomConfiguration.value.copy(includeTypes = Set(Artifact.DefaultType, Artifact.PomType, "zip"))
+
+// publish Maven POM metadata (instead of Ivy);
+// this is important for the UpdatesPlugin's ability to find available updates.
+publishMavenStyle := true
 
 PgpKeys.useGpg := true
 
@@ -12,41 +28,11 @@ pgpSecretRing := file("local.secring.gpg")
 
 pgpPublicRing := file("local.pubring.gpg")
 
-// include *.pom as an artifact
-publishMavenStyle := true
-
-// do not include all repositories in the POM
-pomAllRepositories := false
-
-// make sure no repositories show up in the POM file
-pomIncludeRepository := { _ => false }
-
-additionalProperties := {
-  <git.branch>
-    {git.gitCurrentBranch.value}
-  </git.branch>
-    <git.commit>
-      {git.gitHeadCommit.value.getOrElse("N/A") + (if (git.gitUncommittedChanges.value) "-SNAPSHOT" else "")}
-    </git.commit>
-    <git.tags>
-      {git.gitCurrentTags.map(tag => <git.tag>$tag</git.tag> )}
-    </git.tags>
-}
-
-pomPostProcess <<= additionalProperties { (additions) =>
-  new xml.transform.RuleTransformer(new xml.transform.RewriteRule {
-    override def transform(n: xml.Node): Seq[xml.Node] =
-      n match {
-        case <properties>{props @ _*}</properties> =>
-          <properties>{props}{additions}</properties>
-        case _ =>
-          n
-      }
-  })
-}
-
 git.baseVersion := Versions.version
 
-git.useGitDescribe := true
-
 versionWithGit
+
+// publish to bintray.com via: `sbt publish`
+publishTo := Some(
+  "JPL-IMCE" at
+    s"https://api.bintray.com/content/jpl-imce/gov.nasa.jpl.imce/imce.dynamic_scripts.generic_dsl/${version.value}")
